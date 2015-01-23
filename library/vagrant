@@ -67,7 +67,7 @@ requirements: [ "vagrant" ]
 author: Rob Parrott
 '''
 
-VAGRANT_ROOT = "/Users/Jessica/docker_first_try/infrastructure/configuration/.vagrant"
+VAGRANT_ROOT = "/.vagrant"
 VAGRANT_FILE = VAGRANT_ROOT+"/Vagrantfile"
 VAGRANT_DICT_FILE = VAGRANT_ROOT+"/Vagrantfile.json"
 VAGRANT_LOCKFILE = VAGRANT_ROOT+"/.vagrant-lock"
