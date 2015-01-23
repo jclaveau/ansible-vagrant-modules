@@ -67,9 +67,10 @@ requirements: [ "vagrant" ]
 author: Rob Parrott
 '''
 
-VAGRANT_FILE = "./Vagrantfile"
-VAGRANT_DICT_FILE = "./Vagrantfile.json"
-VAGRANT_LOCKFILE = "./.vagrant-lock"
+VAGRANT_ROOT = "/Users/Jessica/docker_first_try/infrastructure/configuration/.vagrant"
+VAGRANT_FILE = VAGRANT_ROOT+"/Vagrantfile"
+VAGRANT_DICT_FILE = VAGRANT_ROOT+"/Vagrantfile.json"
+VAGRANT_LOCKFILE = VAGRANT_ROOT+"/.vagrant-lock"
 
 VAGRANT_FILE_HEAD = "Vagrant::Config.run do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
@@ -131,7 +132,7 @@ class VagrantWrapper(object):
                 sys.exit(1)
             
         # Initialize vagrant and state files
-        self.vg = vagrant.Vagrant()
+        self.vg = vagrant.Vagrant(root=VAGRANT_ROOT)
         
         # operation will create a default data structure if none present
         self._deserialize()  
@@ -166,7 +167,6 @@ class VagrantWrapper(object):
         changed = False
         if vm_name == None: 
             vm_name = DEFAULT_VM_NAME
-        
         if box_name == None:
             raise Exception("You must specify a box name for Vagrant.")
         if box_path != None: 
@@ -189,10 +189,10 @@ class VagrantWrapper(object):
             # See if we need to fire it up ...
             vgn = d['vagrant_name']
             status = self.vg.status(vgn)
-            if status != 'running':
-                self.vg.up(False, d['vagrant_name'])
-                changed =True
-                
+            if status[0].state != 'running':
+                self.vg.up(False, vm_name=d['vagrant_name'])
+                changed = True
+
         ad = self._build_instance_array_for_ansible(vm_name)
         return (changed, ad)
     
@@ -324,7 +324,10 @@ class VagrantWrapper(object):
         d['n'] = n
         d['N'] = N
         d['name'] = vm_name
-        d['vagrant_name'] = "%s%d" % (vm_name.replace("-","_"),n)
+        if n > 0:
+            d['vagrant_name'] = "%s_inst%d" % (vm_name.replace("-","_"),n+1)
+        else: 
+            d['vagrant_name'] = "%s" % (vm_name.replace("-","_"))
         d['internal_ip'] = VAGRANT_INT_IP % (255-N)
         d['forward_ports'] = []
         self.vg_data['num_inst'] = N
@@ -492,7 +495,6 @@ def main():
         else:
 
             if cmd == 'up':
-            
                 if count == None: count = 1
                 (changd, insts) = vgw.up(box_name, vm_name, count, box_path, forward_ports)
                 module.exit_json(changed = changd, instances = insts)
