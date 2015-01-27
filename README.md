@@ -1,7 +1,15 @@
 	ansible-vagrant
 ===============
 
-A vagrant module for ansible, that lets you control vagrant VMs from an ansible playbook. (BLAH)
+## Changes by caljess599:
+lines 70-73, 135: 
+add VAGRANT_ROOT variable to control where script-generated files are placed, update paths accordingly
+
+lines 192-193: 
+pass in vm_name without relying on argument order; change status variable definition so 'if not running' check works	
+
+
+A vagrant module for ansible, that lets you control vagrant VMs from an ansible playbook.
 
 ## Overview
 
