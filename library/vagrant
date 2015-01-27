@@ -66,11 +66,13 @@ examples:
 requirements: [ "vagrant" ]
 author: Rob Parrott
 '''
+import sys
+import subprocess
+import os.path
+import json
 
-VAGRANT_ROOT = "/.vagrant"
-VAGRANT_FILE = VAGRANT_ROOT+"/Vagrantfile"
-VAGRANT_DICT_FILE = VAGRANT_ROOT+"/Vagrantfile.json"
-VAGRANT_LOCKFILE = VAGRANT_ROOT+"/.vagrant-lock"
+
+
 
 VAGRANT_FILE_HEAD = "Vagrant::Config.run do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
@@ -90,11 +92,7 @@ VAGRANT_INT_IP = "192.168.179.%s"
 
 DEFAULT_VM_NAME = "ansible"
 
-import sys
-import subprocess
-#import time
-import os.path
-import json
+
 
 try:
     import lockfile
@@ -193,6 +191,10 @@ class VagrantWrapper(object):
                 self.vg.up(False, vm_name=d['vagrant_name'])
                 changed = True
 
+#This is the up function from python-vagrant
+#    def up(self, no_provision=False, provider=None, vm_name=None,
+#           provision=None, provision_with=None):
+        
         ad = self._build_instance_array_for_ansible(vm_name)
         return (changed, ad)
     
@@ -449,7 +451,8 @@ def main():
             box_path=dict(),
             vm_name=dict(),
             forward_ports=dict(),
-            count = dict(default='1'), 
+            count = dict(default='1'),
+            vagrant_root = dict(default='.')
        )
    )
     
@@ -458,8 +461,21 @@ def main():
     box_name = module.params.get('box_name')
     box_path = module.params.get('box_path')
     vm_name = module.params.get('vm_name')
-    forward_ports = module.params.get('forward_ports')     
+    forward_ports = module.params.get('forward_ports')
+    vagrant_root = module.params.get('vagrant_root')
 
+    global VAGRANT_ROOT
+    VAGRANT_ROOT = os.path.abspath(os.path.join(vagrant_root, ".vagrant"))
+    if not os.path.exists(VAGRANT_ROOT):
+        os.makedirs(VAGRANT_ROOT)
+
+    global VAGRANT_FILE
+    VAGRANT_FILE = VAGRANT_ROOT+"/Vagrantfile"
+    global VAGRANT_DICT_FILE
+    VAGRANT_DICT_FILE = VAGRANT_ROOT+"/Vagrantfile.json"
+    global VAGRANT_LOCKFILE
+    VAGRANT_LOCKFILE = VAGRANT_ROOT+"/.vagrant-lock"
+    
     if forward_ports != None:
         forward_ports=forward_ports.split(',')
     if forward_ports == None: forward_ports=[]
@@ -495,6 +511,7 @@ def main():
         else:
 
             if cmd == 'up':
+#                print "I am running cmd up"
                 if count == None: count = 1
                 (changd, insts) = vgw.up(box_name, vm_name, count, box_path, forward_ports)
                 module.exit_json(changed = changd, instances = insts)
