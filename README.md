@@ -5,14 +5,14 @@ A vagrant module for ansible that lets you control vagrant VMs from an ansible p
 Forked from https://github.com/robparrott/ansible-vagrant
 
 ## Changes by caljess599:
-*modified Vagrantfile output to use API version 2
-*disabled synced folders on all VMs created by Vagrantfile
-*specified that forwarded port # specified on guest will be forwarded on host to 10000+# (e.g., guest: 80, host: 10080)
-*added VAGRANT_ROOT variable to control where script-generated files are placed, update paths accordingly
-*passed in vm_name without relying on argument order; changed status variable definition so 'if not running' check works
-*changed count logic so if count on inventory is 1, doesn't change the vm name
-*added logic to check if box image has changed
-*repaired prepare_box logic to check if base image is already downloaded 
+* modified Vagrantfile output to use API version 2
+* disabled synced folders on all VMs created by Vagrantfile
+* specified that forwarded port # specified on guest will be forwarded on host to 10000+# (e.g., guest: 80, host: 10080)
+* added VAGRANT_ROOT variable to control where script-generated files are placed, update paths accordingly
+* passed in vm_name without relying on argument order; changed status variable definition so 'if not running' check works
+* changed count logic so if count on inventory is 1, doesn't change the vm name
+* added logic to check if box image has changed
+* repaired prepare_box logic to check if base image is already downloaded 
 
 The following documentation is a lightly revised version of original.
 
