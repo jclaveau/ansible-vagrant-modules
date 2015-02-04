@@ -1,31 +1,31 @@
 	ansible-vagrant
 ===============
+A vagrant module for ansible that lets you control vagrant VMs from an ansible playbook.
+
+Forked from https://github.com/robparrott/ansible-vagrant
 
 ## Changes by caljess599:
-lines 70-73, 135: 
-add VAGRANT_ROOT variable to control where script-generated files are placed, update paths accordingly
+*modified Vagrantfile output to use API version 2
+*disabled synced folders on all VMs created by Vagrantfile
+*specified that forwarded port # specified on guest will be forwarded on host to 10000+# (e.g., guest: 80, host: 10080)
+*added VAGRANT_ROOT variable to control where script-generated files are placed, update paths accordingly
+*passed in vm_name without relying on argument order; changed status variable definition so 'if not running' check works
+*changed count logic so if count on inventory is 1, doesn't change the vm name
+*added logic to check if box image has changed
+*repaired prepare_box logic to check if base image is already downloaded 
 
-lines 192-193: 
-pass in vm_name without relying on argument order; change status variable definition so 'if not running' check works	
-
-
-A vagrant module for ansible, that lets you control vagrant VMs from an ansible playbook.
+The following documentation is a lightly revised version of original.
 
 ## Overview
-
-Main page on GitHub:
-
-* https://github.com/robparrott/ansible-vagrant
-
 Ansible-vagrant is a module for [ansible](http://ansible.cc) that allows you to create VMs on your local system using [Vagrant](http://vagrantup.com/). 
-This lets you write ansible [playbooks](http://ansible.github.com/playbooks.html) that dynamically create local guests and configure them via the ansible playbook. 
-This makes testing and development of orchestrated, distributed applications via ansible easy, by letting you run guests on your local system.
+This allows you to write ansible [playbooks](http://ansible.github.com/playbooks.html) that dynamically create local guests and configure them via the ansible playbook(s). 
+By allowing you to run guests on your local system, this module facilitates testing and development of orchestrated, distributed applications via ansible.
 
-Ansible-vagrant should not be confused with [vagrant-ansible](https://github.com/dsander/vagrant-ansible) which allows you to run ansible playbooks on vagrant launched hosts
+Ansible-vagrant should not be confused with [vagrant-ansible](https://github.com/dsander/vagrant-ansible) which allows you to run ansible playbooks on vagrant-launched hosts.
 
 ## Dependencies & Installation
 
-The vagrant module for ansible requires 
+The vagrant module for ansible requires:
 
  * a working [Vagrant](http://vagrantup.com/) install, which will itself 
    require [VirtualBox](https://www.virtualbox.org/wiki/Downloads).
@@ -40,7 +40,7 @@ To run the tests from the repository, cd into "./test" and run
 ## Getting started with ansible-vagrant
 
 ### Command Line Use
-(Note that the following example assumes you know something about ansible and its syntax and conventions)
+(The following example assumes you know something about ansible and its syntax and conventions.)
 
 The following is a simple example, and assumes a linux or unix shell prompt.
 
@@ -69,17 +69,17 @@ Note: names in vagrant have to be compatible with the ruby syntax used in Vagran
 so they can't use "-" or "_", and must start with a lowercase letter. *In the future, you can leave 
 off the "box_path" argument, as vagrant registers and caches the image locally.
 
-Once up, the image can be logged into via the vagrant command:
+Once up, you can log into the image via the usual vagrant command:
 
     vagrant ssh myvm
 
-or more importantly, registered in the ansible inventory and managed via a playbook.
+Or more importantly, as part of the ansible inventory, it can be managed via a playbook.
 
-You can get the status of the machine via the command
+Get the status of the machine:
 
     ansible all -i hosts -c local -m vagrant -a "cmd=status vm_name=myvm"
 
-and it's configuration (in particular ssh config values) via the config subcommand
+Get its configuration (in particular ssh config values) via the config subcommand:
 
     ansible all -i hosts -c local -m vagrant -a "cmd=config vm_name=myvm"
 
@@ -87,7 +87,7 @@ Then you can halt the machine when you're done:
 
     ansible all -i hosts -c local -m vagrant -a "cmd=halt vm_name=myvm"  
 
-and remove it's record:
+and remove its record:
 
     ansible all -i hosts -c local -m vagrant -a "cmd=destroy vm_name=myvm"  
 
@@ -112,7 +112,7 @@ and VMs before running a playbook. The following is the equivalent of a "make cl
 
     ansible all -i hosts -c local -m vagrant -a "cmd=clear"
     
-(it's kinda fun to watch the VirtualBox manager window, and see the instances shutdown and disappear like good little vms :-> )
+(It's kinda fun to watch the VirtualBox manager window, and see the instances shutdown and disappear like good little VMs :-> )
     
 Here's an example playbook:
 
@@ -198,7 +198,7 @@ Here's an example playbook:
 
 Here, let's talk about the data returned by the various commands. 
 
-These data structures take into account that there may be multiple named sets of isntances, and multiple instances within each "up invocation"
+These data structures take into account that there may be multiple named sets of instances, and multiple instances within each "up invocation"
 
 ### UP
 
@@ -323,12 +323,7 @@ report back the resulting status
        }
     }
     
-### Destroy
 
-### Clear
-
-## LICENSE:
-Not yet ...
 
 
 
