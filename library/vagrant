@@ -71,18 +71,16 @@ import subprocess
 import os.path
 import json
 
-
-
-
-VAGRANT_FILE_HEAD = "Vagrant::Config.run do |config|\n"
+VAGRANT_FILE_HEAD = "Vagrant.configure(\"2\") do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
 VAGRANT_FILE_VM_STANZA_HEAD = """
   config.vm.define :%s do |%s_config|
-    %s_config.vm.network :hostonly, "%s"
+    %s_config.vm.network "private_network", ip: "%s"
     %s_config.vm.box = "%s"
+    %s_config.vm.synced_folder ".", "/vagrant", disabled: true
 """
 VAGRANT_FILE_HOSTNAME_LINE     = "    %s_config.vm.host_name = \"%s\"\n"
-VAGRANT_FILE_PORT_FORWARD_LINE = "    %s_config.vm.forward_port %s, %s\n"  
+VAGRANT_FILE_PORT_FORWARD_LINE = "    %s_config.vm.network \"forwarded_port\", guest: %s, host: %s\n"  
 VAGRANT_FILE_VM_STANZA_TAIL="  end\n"
 
 VAGRANT_FILE_TAIL = "\nend\n"
@@ -91,7 +89,6 @@ VAGRANT_FILE_TAIL = "\nend\n"
 VAGRANT_INT_IP = "192.168.179.%s"
 
 DEFAULT_VM_NAME = "ansible"
-
 
 
 try:
@@ -151,17 +148,29 @@ class VagrantWrapper(object):
         changed = False
         if box_name == None:
             raise Exception("You must specify a box_name with a box_path for vagrant.")
-        boxes = self.vg.box_list()
-        if not box_name in boxes:
+
+        #get vagrant's list of boxes
+        boxlist = self.vg.box_list()
+        
+        #make a list of just the 'name' attribute
+        boxnamelist = []
+        for Box in boxlist:
+            boxname = Box.name
+            boxnamelist.append(boxname)
+
+        #check to see if 'box_name' is in this list
+        if box_name not in boxnamelist:
             self.vg.box_add(box_name, box_path)
             changed = True
-            
+        
         return changed
              
     def up(self, box_name, vm_name=None, count=1, box_path=None, ports=[]):    
         """
         Fire up a given VM and name it, using vagrant's multi-VM mode.
         """
+        new_port = False
+        new_box = False
         changed = False
         if vm_name == None: 
             vm_name = DEFAULT_VM_NAME
@@ -175,25 +184,45 @@ class VagrantWrapper(object):
             self._deserialize()
             
             d = self._get_instance(vm_name,c)
-            if not d.has_key('box_name'): d['box_name'] = box_name        
-            d['forward_ports'] = ports  
-            
+            #vm_name is new, so assign box_name and ports
+            if not d.has_key('box_name'): 
+                d['box_name'] = box_name        
+                d['forward_ports'] = ports
+            #vm_name is not new, let's check for changes
+            else:
+                if d['box_name'] != box_name:
+                     d['box_name'] = box_name
+                     new_box = True
+                if d['forward_ports'] != ports:
+                     d['forward_ports'] = ports
+                     new_port = True
+                                
             # Save our changes and run
             inst_array = self._instances()[vm_name]
             inst_array[c] = d    
             
             self._serialize()
             
-            # See if we need to fire it up ...
+            # See what steps we need to take to get the newer ones running
             vgn = d['vagrant_name']
-            status = self.vg.status(vgn)
-            if status[0].state != 'running':
+            status = self.vg.status(vgn)[0].state
+            if new_box:
+                if status == 'running' or 'poweroff' or 'saved':
+                    self.vg.destroy(vm_name=d['vagrant_name'])
                 self.vg.up(False, vm_name=d['vagrant_name'])
                 changed = True
 
-#This is the up function from python-vagrant
-#    def up(self, no_provision=False, provider=None, vm_name=None,
-#           provision=None, provision_with=None):
+            #not new box
+            else:
+                if status != 'running':
+                    #bring it up, new port will take care of itself
+                    self.vg.up(False, vm_name=d['vagrant_name'])
+                    changed = True
+                else:
+                    if new_port:
+                        self.vg.reload(vm_name=d['vagrant_name'])
+                        changed = True
+                    # do nothing
         
         ad = self._build_instance_array_for_ansible(vm_name)
         return (changed, ad)
@@ -393,11 +422,13 @@ class VagrantWrapper(object):
                 ip = d['internal_ip']
                 box_name = d['box_name']
                 vfile.write(VAGRANT_FILE_VM_STANZA_HEAD % 
-                            (name, name, name, ip, name, box_name) )
-                vfile.write(VAGRANT_FILE_HOSTNAME_LINE  % (name, name.replace('_','-'))  )   
+                            (name, name, name, ip, name, box_name, name) )
+                vfile.write(VAGRANT_FILE_HOSTNAME_LINE  % (name, name.replace('_','-'))  )
+   
                 if d.has_key('forward_ports'):
                     for p in d['forward_ports']:
-                        vfile.write(VAGRANT_FILE_PORT_FORWARD_LINE % (name,p,p) )
+                        if p:
+                            vfile.write(VAGRANT_FILE_PORT_FORWARD_LINE % (name,p,(int(p)+10000)) )
                 vfile.write(VAGRANT_FILE_VM_STANZA_TAIL)
   
         vfile.write(VAGRANT_FILE_TAIL)
