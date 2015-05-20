@@ -36,7 +36,7 @@
       
   - name: Capture that host's contact info into the inventory (the hostname is a unique ID from Vagrant ... )
     action: add_host 
-            hostname=''{item.vagrant_name}}' 
+            hostname='{{item.vagrant_name}}' 
             ansible_ssh_port='{{item.port}}' 
             ansible_ssh_host='{{item.public_ip}}'
             groupname=vagrant_hosts
