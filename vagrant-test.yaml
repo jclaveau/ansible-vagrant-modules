@@ -23,6 +23,7 @@
         box_path='{{box_path}}'
         vm_name='{{vm_name}}'
         count=1
+        log=yes
     register: vagrant
 
     
@@ -36,11 +37,12 @@
     with_items: '{{vagrant.instances}}'
       
   - name: Capture that hosts contact info into the inventory (the hostname is a unique ID from Vagrant ... )
-    action: add_host 
+    
+    action: add_host
+            groupname=vagrant_hosts
             hostname='{{item.vagrant_name}}' 
             ansible_ssh_port='{{item.port}}' 
             ansible_ssh_host='{{item.public_ip}}'
-            groupname=vagrant_hosts
             ansible_ssh_private_key_file='{{item.key}}'
     with_items: '{{vagrant.instances}}'
     
