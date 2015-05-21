@@ -58,7 +58,9 @@ options:
     description:
       - comma separated list of ports to forward to the host
     required: False
-    aliases: []    
+    aliases: []
+  log:
+    default: false
   
 examples:
    - code: 'local_action: vagrant cmd=up box_name=lucid32 vm_name=webserver'
@@ -85,6 +87,8 @@ VAGRANT_FILE_VM_STANZA_TAIL="  end\n"
 
 VAGRANT_FILE_TAIL = "\nend\n"
 
+VAGRANT_LOG_FN='vagrant.log'
+
 # If this is already a network on your machine, this may fail ... change it here.
 VAGRANT_INT_IP = "192.168.179.%s"
 
@@ -104,12 +108,15 @@ except ImportError:
 
 class VagrantWrapper(object):
 
-    def __init__(self):
+    def __init__(self,*args,**kwargs):
 
         '''
         Wrapper around the python-vagrant module for use with ansible.
         Note that Vagrant itself is non-thread safe, as is the python-vagrant lib, so we need to lock on basically all operations ...
         '''
+
+        log=kwargs.setdefault('log',False)
+        
         # Get a lock
         self.lock = None
 
@@ -127,7 +134,14 @@ class VagrantWrapper(object):
                 sys.exit(1)
             
         # Initialize vagrant and state files
-        self.vg = vagrant.Vagrant(root=VAGRANT_ROOT)
+
+        vgargs=[]; vgkwargs=dict(root=VAGRANT_ROOT)
+        if log==True:
+            log_cm = vagrant.make_file_cm(VAGRANT_LOGFILE)
+            vgkwargs['out_cm'] = log_cm
+            vgkwargs['err_cm'] = log_cm
+
+        self.vg = vagrant.Vagrant(*vgargs,**vgkwargs)
         
         # operation will create a default data structure if none present
         self._deserialize()  
@@ -323,11 +337,10 @@ class VagrantWrapper(object):
         Halt and remove data for a VM, or all VMs. Also clear all state data
         """
         changed = self.vg.destroy(vm_name)
-        
-        if os.path.isfile(VAGRANT_FILE):
-            os.remove(VAGRANT_FILE)
-        if os.path.isfile(VAGRANT_DICT_FILE):
-            os.remove(VAGRANT_DICT_FILE)            
+
+        for af in [VAGRANT_FILE, VAGRANT_DICT_FILE, VAGRANT_LOGFILE]:
+            if os.path.isfile(af):
+                os.remove(af)        
 
         return changed           
 #
@@ -483,7 +496,8 @@ def main():
             vm_name=dict(),
             forward_ports=dict(),
             count = dict(default='1'),
-            vagrant_root = dict(default='.')
+            vagrant_root = dict(default='.'),
+            log=dict(default=False, choices=BOOLEANS)
        )
    )
     
@@ -494,6 +508,7 @@ def main():
     vm_name = module.params.get('vm_name')
     forward_ports = module.params.get('forward_ports')
     vagrant_root = module.params.get('vagrant_root')
+    log = module.boolean(module.params.get('log'))
 
     global VAGRANT_ROOT
     VAGRANT_ROOT = os.path.abspath(os.path.join(vagrant_root, ".vagrant"))
@@ -506,6 +521,8 @@ def main():
     VAGRANT_DICT_FILE = VAGRANT_ROOT+"/Vagrantfile.json"
     global VAGRANT_LOCKFILE
     VAGRANT_LOCKFILE = VAGRANT_ROOT+"/.vagrant-lock"
+    global VAGRANT_LOGFILE
+    VAGRANT_LOGFILE = VAGRANT_ROOT+'/vagrant.log'
     
     if forward_ports != None:
         forward_ports=forward_ports.split(',')
@@ -514,7 +531,7 @@ def main():
     count = module.params.get('count') 
  
     # Initialize vagrant
-    vgw = VagrantWrapper()
+    vgw = VagrantWrapper(log=log)
     
     #
     # Check if we are being invoked under an idempotency idiom of "state=present" or "state=absent"
