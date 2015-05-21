@@ -41,6 +41,7 @@
             ansible_ssh_port='{{item.port}}' 
             ansible_ssh_host='{{item.public_ip}}'
             groupname=vagrant_hosts
+            ansible_ssh_private_key_file='{{item.key}}'
     with_items: '{{vagrant.instances}}'
     
 #
