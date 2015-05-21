@@ -99,6 +99,11 @@ try:
     import lockfile
 except ImportError:
     print "Python module lockfile is not installed. Falling back to using flock(), which will fail on Windows."
+    import platform
+    if any((n in platform.system().lower() for n in ('cyg','win','nt' )))==True:
+        sys.exit(1)
+        
+    
     
 try:
     import vagrant
