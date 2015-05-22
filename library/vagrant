@@ -23,7 +23,7 @@ description:
 version_added: "100.0"
 options:
   state:
-    description: Should the VMs be "present" or "absent."
+    description: Should the VMs be "up" or "halt"
   cmd:
     description:
       - vagrant subcommand to execute. Can be "up," "status," "config," "ssh," "halt," "destroy" or "clear." 
@@ -544,15 +544,15 @@ def main():
     try:
         if state != None:
             
-            if state != 'present' and state != 'absent':
-                module.fail_json(msg = "State must be \"present\" or \"absent\" in vagrant module.")
+            if state != 'halt' and state != 'up':
+                module.fail_json(msg = "State must be \"halt\" or \"up\" in vagrant module.")
                  
-            if state == 'present':
+            if state == 'up':
                
                 changd, insts = vgw.up(box_name, vm_name, count, box_path, forward_ports)
                 module.exit_json(changed = changd, instances = insts)
                  
-            if state == 'absent':
+            if state == 'halt':
                 changd = vgw.halt(vm_name)    
                 module.exit_json(changed = changd, status = vgw.status(vm_name))
                  

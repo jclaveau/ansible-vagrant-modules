@@ -72,7 +72,7 @@
           
   - name: Shut them down ...
     local_action: vagrant 
-                  state=absent 
+                  state=halt
                   vm_name='{{vm_name}}'
                   
   - name: Now clear it out ...

@@ -54,7 +54,7 @@ The target machine image is called a "box" under vagrant, and can be managed ahe
 
 or instead the path can be specified when you start the VM itself. We'll start up a standard VM with ansible-vagrant as follows: 
 
-    ansible all -i hosts -c local -m vagrant -a "state=present vm_name=myvm box_name=lucid64 box_path=http://files.vagrantup.com/lucid64.box"
+    ansible all -i hosts -c local -m vagrant -a "state=up vm_name=myvm box_name=lucid64 box_path=http://files.vagrantup.com/lucid64.box"
     
 This command will download and register the image as "lucid64," then start up the image and attribute 
 the name "myvm" to it. If you had left off the "vm_name" argument, the module will set the vm_name to "ansible" for you.
@@ -99,7 +99,7 @@ Lastly, we can shutdown and clear out all records with the "clear" subcommand:
     
 Most correctly, we can insist that the state of the instances is "absent":
 
-    ansible all -i hosts -c local -m vagrant -a "state=absent vm_name=myvm"      
+    ansible all -i hosts -c local -m vagrant -a "state=halt vm_name=myvm"      
 
 ### Playbooks
          
@@ -136,7 +136,7 @@ Here's an example playbook:
       tasks:
       - name: Fire up a set of vagrant instances to log into
         local_action: vagrant
-            state=present
+            state=up
             box_name=${box_name}
             box_path=${box_path}
             vm_name=${vm_name}
@@ -187,7 +187,7 @@ Here's an example playbook:
     #
       - name: Now shut them down ...
         local_action: vagrant 
-                      state=absent 
+                      state=halt
                       vm_name='${vm_name}'
                   
       - name: Now clear it out ...
