@@ -1,3 +1,0 @@
-[submodule "inventory/vagrant"]
-	path = inventory/vagrant
-	url = https://gist.github.com/3eecbf48850038209858.git
