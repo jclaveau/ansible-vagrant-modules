@@ -1,1 +1,1 @@
-library/ inventory/ .gitignore .gitmodules ansible.cfg
+.vagrant/ library/ inventory/ .gitignore .gitmodules ansible.cfg
