@@ -1,4 +1,6 @@
 #!/bin/sh
+set -e
+
 
 #args
 VAGRANTFILE_IN="$1"
