@@ -1,4 +1,11 @@
 	git clone --recursive git@github.com:majidaldo/ansible-vagrant.git
+	
+to start a new automation based off these files
+
+        git checkout template
+        git checkout master $(cat files.txt)
+
+
 ===============
 A vagrant module for ansible that lets you control vagrant VMs from an ansible playbook.
 
