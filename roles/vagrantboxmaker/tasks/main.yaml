@@ -1,0 +1,8 @@
+---
+
+
+- name: make vagrant box
+  script: make_box.sh {{in_vagrantfile}} {{out_boxfile}}
+
+
+

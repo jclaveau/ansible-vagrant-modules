@@ -6,3 +6,4 @@ Vagrantfile.json
 .vagrant-lock.lock
 .vagrant-lock
 *~
+*.box

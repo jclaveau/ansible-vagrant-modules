@@ -1,0 +1,8 @@
+---
+
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - { role: vagrantboxmaker,
+    in_vagrantfile: Vagrantfile.roletest , out_boxfile: precise32.box }
+
