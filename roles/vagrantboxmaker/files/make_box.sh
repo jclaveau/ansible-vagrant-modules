@@ -18,14 +18,17 @@ cd $VAGRANTFILE_DIR
 VAGRANT_VAGRANTFILE=$(basename ${VAGRANTFILE_IN})
 
 VAGRANT_VAGRANTFILE=${VAGRANT_VAGRANTFILE} vagrant up #$BOX_NAME ...etc.
+
+#rm -f ${BOX_FN}.tmp #ignores if not exists
 shift 2
+#BOXPATH_OUT with package does not work in cygwin!!!
 VAGRANT_VAGRANTFILE=${VAGRANT_VAGRANTFILE} vagrant package \
 	--vagrantfile ${VAGRANT_VAGRANTFILE} \
-	--output ${BOX_FN} \
+	--output ${BOXPATH_OUT} \
 	"$@"
 #last args are for --include option
 
-#to get it to work in cygwin!
-mv $BOX_FN $BOX_DIR
+
+#mv -f ${BOX_FN}.tmp $BOXPATH_OUT
 
 VAGRANT_VAGRANTFILE=${VAGRANT_VAGRANTFILE} vagrant destroy -f
