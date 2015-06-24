@@ -11,19 +11,20 @@
   gather_facts: False
 
   vars:
-    box_name: lucid32
-    box_path: http://files.vagrantup.com/lucid32.box
-    vm_name: frank
+    box_name2: lucid32
+    box_path2: http://files.vagrantup.com/lucid32.box
+    vm_name2: frank
 
   tasks:
   - name: Fire up a set of vagrant instances to log into
     local_action: vagrant
-        command=up
-        box_name='{{box_name}}'
-        box_path='{{box_path}}'
-        vm_name='{{vm_name}}'
-        count=1
-        log=yes
+    args:
+      command: up
+      box_name: "{{box_name2}}"
+      box_path: "{{box_path2}}"
+      vm_name: "{{vm_name2}}"
+      count: 1
+      log: true
     register: vagrant
 
     
@@ -53,7 +54,7 @@
   - vagrant_hosts
   user: vagrant
   vars:
-    vm_name: frank
+    vm_name2: frank
   gather_facts: True
              
   tasks:
@@ -73,7 +74,7 @@
   - name: Shut them down ...
     local_action: vagrant 
                   state=halt
-                  vm_name='{{vm_name}}'
+                  vm_name='{{vm_name2}}'
                   
   - name: Now clear it out ...
     local_action: vagrant command=clear     
