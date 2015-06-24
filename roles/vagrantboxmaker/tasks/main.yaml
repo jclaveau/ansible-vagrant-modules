@@ -63,7 +63,7 @@
 
   always:
     - name: clean temp dir
-      command: rm -rf {{twd.stdout}}
+      file: path={{twd.stdout}} state=absent
   
  
 
