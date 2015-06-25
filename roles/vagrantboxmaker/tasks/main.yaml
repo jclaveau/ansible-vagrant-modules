@@ -1,5 +1,7 @@
 ---
 
+#vagrantfile and box file paths are relative to remote
+
 - stat: path={{out_boxfile}} get_checksum=false
   register: boxfilestats
 - name: does box file exist?
@@ -34,37 +36,32 @@
 #would work
 
 
-- name: vagrantfile filename
-  local_action: command basename {{in_vagrantfile}}
-  register: vffn
-
-
 - block:
-    - name: tmp workdir
-      command: mktemp -d
-      register: twd
-    - name: copy vagrantfile to remote
-      copy: src={{in_vagrantfile}} dest={{twd.stdout}}
 
-    - name: make vagrant box on the remote
+    - name: temporary box file name
+      shell: echo $(dirname in_vagrantfile)/some.box
+      register: tempbox
+      when: shouldrun
+    - name: remove temporary box # todo: best if error handler
+      file: path={{tempbox.stdout}} state=absent
+      when: shouldrun
+    
+    - name: make vagrant box on the remote in the vagrantfile dir
       #the script changes to the vagrantfile dir.
       #so the out box is in the same dir as vagrantfile
-      script: make_box.sh {{twd.stdout}}/{{vffn.stdout}} box
+      script: make_box.sh {{in_vagrantfile}} some.box
       when: shouldrun
-
-    - name: get box from remote
-      fetch:
-        args:
-          src: "{{twd.stdout}}/box"
-          dest: "{{out_boxfile}}"
-          flat: true
-          fail_on_missing: true
-      when: shouldrun
-
-  always:
-    - name: clean temp dir
-      file: path={{twd.stdout}} state=absent
   
- 
+    - name: move box file
+      shell: cd $(dirname {{in_vagrantfile}}) && mv -f some.box {{out_boxfile}}
+      when: shouldrun
 
+#  always: #not working!!
+    # - name: temporary box file name
+    #   shell: echo $(dirname in_vagrantfile)/some.box
+    #   register: tempbox
+    # - name: remove box # todo: best if error handler
+    #   file: path={{tempbox.stdout}} state=absent
+
+      
 
