@@ -23,7 +23,11 @@
       box_name: "{{box_name2}}"
       box_path: "{{box_path2}}"
       vm_name: "{{vm_name2}}"
-      count: 1
+      count: 2
+      config_code: |
+        config.vm.provider "virtualbox" do |vb|
+        vb.memory = 256
+        end
       log: true
     register: vagrant
 

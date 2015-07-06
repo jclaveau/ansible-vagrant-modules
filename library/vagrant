@@ -61,6 +61,8 @@ options:
     aliases: []
   log:
     default: false
+  config_code:
+    default: ""
   
 examples:
    - code: 'local_action: vagrant cmd=up box_name=lucid32 vm_name=webserver'
@@ -121,6 +123,7 @@ class VagrantWrapper(object):
         '''
 
         log=kwargs.setdefault('log',False)
+        self.config_code=kwargs.setdefault('config_code',"\n;\n;")
         
         # Get a lock
         self.lock = None
@@ -191,6 +194,7 @@ class VagrantWrapper(object):
         new_port = False
         new_box = False
         changed = False
+        
         if vm_name == None: 
             vm_name = DEFAULT_VM_NAME
         if box_name == None:
@@ -374,7 +378,7 @@ class VagrantWrapper(object):
         d['N'] = N
         d['name'] = vm_name
         if n > 0:
-            d['vagrant_name'] = "%s_inst%d" % (vm_name.replace("-","_"),n+1)
+            d['vagrant_name'] = "%s_inst%d" % (vm_name.replace("-","_"),n+1) 
         else: 
             d['vagrant_name'] = "%s" % (vm_name.replace("-","_"))
         d['internal_ip'] = VAGRANT_INT_IP % (255-N)
@@ -447,7 +451,16 @@ class VagrantWrapper(object):
                     for p in d['forward_ports']:
                         if p:
                             vfile.write(VAGRANT_FILE_PORT_FORWARD_LINE % (name,p,(int(p)+10000)) )
-                vfile.write(VAGRANT_FILE_VM_STANZA_TAIL)
+                config_code=""
+                for aline in self.config_code.splitlines():
+                    if aline.lstrip()[0] != ';':
+                        config_code+='\n    '
+                        if 'config.' in aline:
+                            config_code+=(aline.replace('config.','%s_config.')) % name
+                        else:
+                            config_code+=aline
+                    else: continue
+                vfile.write(config_code+'\n'+VAGRANT_FILE_VM_STANZA_TAIL)
   
         vfile.write(VAGRANT_FILE_TAIL)
         vfile.close()
@@ -502,7 +515,8 @@ def main():
             forward_ports=dict(),
             count = dict(default='1'),
             vagrant_root = dict(default='.'),
-            log=dict(default=False, choices=BOOLEANS)
+            log=dict(default=False, choices=BOOLEANS),
+            config_code=dict(default="")
        )
    )
     
@@ -514,6 +528,7 @@ def main():
     forward_ports = module.params.get('forward_ports')
     vagrant_root = module.params.get('vagrant_root')
     log = module.boolean(module.params.get('log'))
+    config_code = module.params.get('config_code')
 
     global VAGRANT_ROOT
     VAGRANT_ROOT = os.path.abspath(os.path.join(vagrant_root, ".vagrant"))
@@ -536,7 +551,7 @@ def main():
     count = module.params.get('count') 
  
     # Initialize vagrant
-    vgw = VagrantWrapper(log=log)
+    vgw = VagrantWrapper(log=log,config_code=config_code)
     
     #
     # Check if we are being invoked under an idempotency idiom of "state=present" or "state=absent"
