@@ -12,6 +12,7 @@ A vagrant module for ansible that lets you control vagrant VMs from an ansible p
 Forked from https://github.com/robparrott/ansible-vagrant
 
 ### Changes
+
 #### by caljess599:
 * modified Vagrantfile output to use API version 2
 * disabled synced folders on all VMs created by Vagrantfile
@@ -21,6 +22,7 @@ Forked from https://github.com/robparrott/ansible-vagrant
 * changed count logic so if count on inventory is 1, doesn't change the vm name
 * added logic to check if box image has changed
 * repaired prepare_box logic to check if base image is already downloaded
+
 #### by majidaldo
 * added log file. log: true|false
 * added share_folder and share_mount nfs sharing (see module documentation)
