@@ -11,7 +11,8 @@ A vagrant module for ansible that lets you control vagrant VMs from an ansible p
 
 Forked from https://github.com/robparrott/ansible-vagrant
 
-## Changes by caljess599:
+### Changes
+#### by caljess599:
 * modified Vagrantfile output to use API version 2
 * disabled synced folders on all VMs created by Vagrantfile
 * specified that forwarded port # specified on guest will be forwarded on host to 10000+# (e.g., guest: 80, host: 10080)
@@ -19,7 +20,11 @@ Forked from https://github.com/robparrott/ansible-vagrant
 * passed in vm_name without relying on argument order; changed status variable definition so 'if not running' check works
 * changed count logic so if count on inventory is 1, doesn't change the vm name
 * added logic to check if box image has changed
-* repaired prepare_box logic to check if base image is already downloaded 
+* repaired prepare_box logic to check if base image is already downloaded
+#### by majidaldo
+* added log file. log: true|false
+* added share_folder and share_mount nfs sharing (see module documentation)
+* added config_code. custom configuation code that goes in the vagrantfile. the word config. will be converted to config_"machine" so that you can have machine-specific options. great for hypervisor options such as config.vm.memory ...
 
 The following documentation is a lightly revised version of original.
 
