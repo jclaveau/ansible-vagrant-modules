@@ -70,7 +70,7 @@ options:
   config_code:
     default: ""
     description:
-      - custom configuation code that goes in the vagrantfile such as hypervisor options
+      - custom configuation code that goes in the vagrantfile such as hypervisor options. the word config. will be converted to config_"machine" so that you can have machine-specific options.
   
 examples:
    - code: 'local_action: vagrant cmd=up box_name=lucid32 vm_name=webserver'
