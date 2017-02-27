@@ -71,7 +71,10 @@ options:
     default: ""
     description:
       - custom configuation code that goes in the vagrantfile such as hypervisor options. the word config. will be converted to config_"machine" so that you can have machine-specific options.
-  
+  provider:
+    default: virtualbox
+    description:
+      - a provider to use instead of default virtualbox
 examples:
    - code: 'local_action: vagrant cmd=up box_name=lucid32 vm_name=webserver'
      description: 
@@ -136,6 +139,7 @@ class VagrantWrapper(object):
         self.share_folder=kwargs.setdefault('share_folder',".")
         self.share_mount=kwargs.setdefault('share_mount',"/vagrant")
         
+        self.provider = kwargs.setdefault('provider',"virtualbox")
         
         # Get a lock
         self.lock = None
@@ -244,14 +248,14 @@ class VagrantWrapper(object):
             if new_box:
                 if status == 'running' or 'poweroff' or 'saved':
                     self.vg.destroy(vm_name=d['vagrant_name'])
-                self.vg.up(False, vm_name=d['vagrant_name'])
+                self.vg.up(False, vm_name=d['vagrant_name'], provider=self.provider)
                 changed = True
 
             #not new box
             else:
                 if status != 'running':
                     #bring it up, new port will take care of itself
-                    self.vg.up(False, vm_name=d['vagrant_name'])
+                    self.vg.up(False, vm_name=d['vagrant_name'], provider=self.provider)
                     changed = True
                 else:
                     if new_port:
@@ -545,8 +549,9 @@ def main():
             log=dict(default=False, choices=BOOLEANS),
             config_code=dict(default=""),
             #"" for None as i'm not sure of the None behavior python  <-> json
-            share_folder=dict(default="") ,
-            share_mount=dict(default='/vagrant')
+            share_folder=dict(default=""),
+            share_mount=dict(default='/vagrant'),
+            provider=dict(default="virtualbox")
        )
    )
     
@@ -561,6 +566,7 @@ def main():
     config_code = module.params.get('config_code')
     share_folder = module.params.get('share_folder')
     share_mount = module.params.get('share_mount')
+    provider = module.params.get('provider')
 
     global VAGRANT_ROOT
     VAGRANT_ROOT = os.path.abspath(os.path.join(vagrant_root, ".vagrant"))
@@ -585,7 +591,8 @@ def main():
     # Initialize vagrant
     vgw = VagrantWrapper(log=log
                          ,config_code=config_code
-                         ,share_folder=share_folder,share_mount=share_mount)
+                         ,share_folder=share_folder,share_mount=share_mount
+                         ,provider=provider)
     
     #
     # Check if we are being invoked under an idempotency idiom of "state=present" or "state=absent"

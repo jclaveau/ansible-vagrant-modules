@@ -28,6 +28,10 @@ Forked from https://github.com/robparrott/ansible-vagrant
 * added share_folder and share_mount nfs sharing (see module documentation)
 * added config_code. custom configuation code that goes in the vagrantfile. the word config. will be converted to config_"machine" so that you can have machine-specific options. great for hypervisor options such as config.vm.memory ...
 
+
+#### by tomaskadlec
+* added provider option, default value is virtualbox
+
 The following documentation is a lightly revised version of original.
 
 ## Overview
