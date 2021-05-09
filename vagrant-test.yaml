@@ -1,19 +1,26 @@
 ---
-#
+
+# 
 # This section fires up a set of guests dynamically using vagrant,
-#  registers it in the inventory under 
-#  the group "vagrant_hosts"
+# registers it in the inventory under the group "vagrant_hosts"
 # then logs in and pokes around.
-#
+# 
+# Usage:
+# ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory/ansible/hosts vagrant-test.yaml --ssh-extra-args='-o IdentitiesOnly=yes'
+# 
+
+
 - hosts:
   - localhost
   connection: local
   gather_facts: False
 
   vars:
-    box_name2: lucid32
-    box_path2: http://files.vagrantup.com/lucid32.box
+    box_name2: debian/buster64
+    box_path2: https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/virtualbox.box
+    # https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/libvirt.box
     vm_name2: frank
+    ansible_python_interpreter: "/usr/bin/env python"
 
   tasks:
   - name: Fire up a set of vagrant instances to log into
@@ -51,14 +58,44 @@
             ansible_ssh_private_key_file='{{item.key}}'
     with_items: '{{vagrant.instances}}'
     
-#
+
 # Run on the vagrant_hosts group, checking that we have basic ssh access...
-#    
+   
+- hosts:
+  - vagrant_hosts
+  user: vagrant
+  become: yes # provisionning python and running vagrant split to avoid sudo on localhost
+  gather_facts: True
+             
+  tasks:
+  
+  - name: Update the repository cache
+    apt:
+      update_cache: yes
+      cache_valid_time: 3600
+    ignore_errors: yes # do not fail if only some cache or not ready
+
+  - name: Set Python3 as default
+    shell: "rm /usr/bin/python; ln -s /usr/bin/python3 /usr/bin/python"
+
+  - name: Install pip
+    package:
+      name: "{{ item }}"
+    with_items:
+      - python3-pip 
+
+  - name: Install lockfile python package
+    pip:
+      name: lockfile
+
+      
+
 - hosts:
   - vagrant_hosts
   user: vagrant
   vars:
     vm_name2: frank
+    ansible_python_interpreter: "/usr/bin/env python"
   gather_facts: True
              
   tasks:
@@ -67,8 +104,8 @@
     action: command uname -a
     
   - name: Lets see all the ansible vars about vagrant hosts...
-    action: setup
-  
+    action: setup      
+      
   - name: Generate a ./blah_ansible.vars to check for hostvars
     action: template src=test-vagrant-hostinfo.j2 dest=/tmp/localhost_ansible.vars
     
@@ -81,4 +118,4 @@
                   vm_name='{{vm_name2}}'
                   
   - name: Now clear it out ...
-    local_action: vagrant command=clear     
+    local_action: vagrant command=clear

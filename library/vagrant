@@ -1,8 +1,10 @@
-#!/usr/bin/env python -tt
+#!/usr/bin/env python3 -tt
 # This file is part of Ansible
 #
 # Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms 
+# 
+# of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
@@ -85,6 +87,7 @@ import sys
 import subprocess
 import os.path
 import json
+from ansible.module_utils.basic import AnsibleModule
 
 VAGRANT_FILE_HEAD = "Vagrant.configure(\"2\") do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
@@ -112,7 +115,7 @@ DEFAULT_VM_NAME = "ansiblevagrant"
 try:
     import lockfile
 except ImportError:
-    print "Python module lockfile is not installed. Falling back to using flock(), which will fail on Windows."
+    print("Python module lockfile is not installed. Falling back to using flock(), which will fail on Windows.")
     import platform
     if any((n in platform.system().lower() for n in ('cyg','win','nt' )))==True:
         sys.exit(1)
@@ -122,7 +125,7 @@ except ImportError:
 try:
     import vagrant
 except ImportError:
-    print "failed=True msg='python-vagrant required for this module'"
+    print("failed=True msg='python-vagrant required for this module'")
     sys.exit(1)
 
 class VagrantWrapper(object):
@@ -154,7 +157,7 @@ class VagrantWrapper(object):
                 self.lock = open(VAGRANT_LOCKFILE, 'w')
                 fcntl.flock(self.lock, fcntl.LOCK_EX)
             except:
-                print "failed=True msg='Could not get a lock for using vagrant. Install python module \"lockfile\" to use vagrant on non-POSIX filesytems.'"
+                print("failed=True msg='Could not get a lock for using vagrant. Install python module \"lockfile\" to use vagrant on non-POSIX filesytems.'")
                 sys.exit(1)
             
         # Initialize vagrant and state files
@@ -224,7 +227,7 @@ class VagrantWrapper(object):
             
             d = self._get_instance(vm_name,c)
             #vm_name is new, so assign box_name and ports
-            if not d.has_key('box_name'): 
+            if 'box_name' not in d: 
                 d['box_name'] = box_name        
                 d['forward_ports'] = ports
             #vm_name is not new, let's check for changes
@@ -273,7 +276,7 @@ class VagrantWrapper(object):
         vm_names = []
         if vm_name != None: vm_names = [vm_name]
         else:
-            vm_names = self._instances().keys()
+            vm_names = list(self._instances().keys())
         
         statuses = {}
         for vmn in vm_names:
@@ -295,7 +298,7 @@ class VagrantWrapper(object):
         vm_names = []
         if vm_name != None: vm_names = [vm_name]
         else:
-            vm_names = self._instances().keys()
+            vm_names = list(self._instances().keys())
         
         configs = {}
         for vmn in vm_names:
@@ -318,7 +321,7 @@ class VagrantWrapper(object):
         vm_names = []
         if vm_name != None: vm_names = [vm_name]
         else:
-            vm_names = self._instances().keys()
+            vm_names = list(self._instances().keys())
         
         statuses = {}
         for vmn in vm_names:
@@ -378,7 +381,7 @@ class VagrantWrapper(object):
         instances = self._instances()
 
         inst_array = []        
-        if instances.has_key(vm_name):
+        if vm_name in instances:
             inst_array = instances[vm_name]
             
         if len(inst_array) > n: return inst_array[n]
@@ -436,7 +439,7 @@ class VagrantWrapper(object):
             json_file.close()
 
     def _state_as_string(self,d):
-        from StringIO import StringIO
+        from io import StringIO
         io = StringIO()
         json.dump(self.vg_data, io)
         return io.getvalue()
@@ -455,7 +458,7 @@ class VagrantWrapper(object):
         vfile.write(VAGRANT_FILE_HEAD)
 
         instances = self._instances()
-        for vm_name in instances.keys():
+        for vm_name in list(instances.keys()):
             inst_array = instances[vm_name]
             for c in range(len(inst_array)):
                 d = inst_array[c] 
@@ -476,7 +479,7 @@ class VagrantWrapper(object):
                     sf=self.share_folder
                 vfile.write(VAGRANT_FILE_SYNCED_FOLDER_LINE  % (name, sf , self.share_mount , sfd ))
    
-                if d.has_key('forward_ports'):
+                if 'forward_ports' in d:
                     for p in d['forward_ports']:
                         if p:
                             vfile.write(VAGRANT_FILE_PORT_FORWARD_LINE % (name,p,(int(p)+10000)) )
@@ -505,7 +508,7 @@ class VagrantWrapper(object):
         if vmname != None:
             vm_names = [vmname]
         else:
-            vm_names = instances.keys()
+            vm_names = list(instances.keys())
         
         ans_instances = []   
         for vm_name in vm_names:
@@ -517,7 +520,7 @@ class VagrantWrapper(object):
                     d = {
                          'name' : vm_name,
                          'vagrant_name' : vagrant_name,
-                        'hostname' : vagrant_name.replace('_','-'),
+                         'hostname' : vagrant_name.replace('_','-'),
                          'id': cnf['Host'],
                          'public_ip': cnf['HostName'],
                          'internal_ip': inst['internal_ip'],
@@ -546,7 +549,7 @@ def main():
             forward_ports=dict(),
             count = dict(default='1'),
             vagrant_root = dict(default='.'),
-            log=dict(default=False, choices=BOOLEANS),
+            log=dict(default=False, type='bool'),
             config_code=dict(default=""),
             #"" for None as i'm not sure of the None behavior python  <-> json
             share_folder=dict(default=""),
