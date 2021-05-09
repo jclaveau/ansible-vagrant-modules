@@ -1,3 +1,3 @@
-{% for k,v in hostvars.iteritems() %}
-Key {{k}} Value: {{v|pprint}}
+{% for key in hostvars %}
+Key {{ key }} Value: {{ hostvars[key]|pprint }}
 {% endfor %}
