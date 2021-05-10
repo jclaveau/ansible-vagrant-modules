@@ -1,14 +1,11 @@
 ---
-
 # 
 # This section fires up a set of guests dynamically using vagrant,
 # registers it in the inventory under the group "vagrant_hosts"
 # then logs in and pokes around.
 # 
 # Usage:
-# ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory/ansible/hosts vagrant-test.yaml --ssh-extra-args='-o IdentitiesOnly=yes'
-# 
-
+# ansible-playbook -i inventory/ansible/hosts vagrant-test.yaml
 
 - hosts:
   - localhost
@@ -16,11 +13,11 @@
   gather_facts: False
 
   vars:
+    ansible_python_interpreter: "/usr/bin/env python"
     box_name2: debian/buster64
     box_path2: https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/virtualbox.box
     # https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/libvirt.box
     vm_name2: frank
-    ansible_python_interpreter: "/usr/bin/env python"
 
   tasks:
   - name: Fire up a set of vagrant instances to log into
@@ -37,85 +34,56 @@
         end
       log: true
     register: vagrant
-
     
   - name: Remind us about the vagrant private key ...
-    action: debug 
-            msg="Be sure to add the ssh private key for vagrant, here ... '{{vagrant.instances[0].key}}'."
+    ansible.builtin.debug: 
+      msg: "Be sure to add the ssh private key for vagrant, here ... '{{vagrant.instances[0].key}}'."
   
   - name: Host info ...
-    action: debug
-            msg='{{item.public_ip}}:{{item.port}}' 
-    with_items: '{{vagrant.instances}}'
+    ansible.builtin.debug:
+      msg: '{{item.public_ip}}:{{item.port}}' 
+    loop: '{{vagrant.instances}}'
       
   - name: Capture that hosts contact info into the inventory (the hostname is a unique ID from Vagrant ... )
-    
-    action: add_host
-            groupname=vagrant_hosts
-            hostname='{{item.vagrant_name}}' 
-            ansible_ssh_port='{{item.port}}' 
-            ansible_ssh_host='{{item.public_ip}}'
-            ansible_ssh_private_key_file='{{item.key}}'
-    with_items: '{{vagrant.instances}}'
-    
+    ansible.builtin.add_host: 
+      groupname: vagrant_hosts
+      hostname: '{{item.vagrant_name}}' 
+      ansible_ssh_port: '{{item.port}}' 
+      ansible_ssh_host: '{{item.public_ip}}'
+      ansible_ssh_private_key_file: '{{item.key}}'
+      ansible_ssh_args: ' -o StrictHostKeyChecking=no -o IdentitiesOnly=yes ' # avoids ssh key storing and fixes warnings "sftp|scp transfer mechanism failed on [127.0.0.1]"
+    loop: '{{vagrant.instances}}'    
 
 # Run on the vagrant_hosts group, checking that we have basic ssh access...
-   
-- hosts:
-  - vagrant_hosts
-  user: vagrant
-  become: yes # provisionning python and running vagrant split to avoid sudo on localhost
-  gather_facts: True
-             
-  tasks:
-  
-  - name: Update the repository cache
-    apt:
-      update_cache: yes
-      cache_valid_time: 3600
-    ignore_errors: yes # do not fail if only some cache or not ready
-
-  - name: Set Python3 as default
-    shell: "rm /usr/bin/python; ln -s /usr/bin/python3 /usr/bin/python"
-
-  - name: Install pip
-    package:
-      name: "{{ item }}"
-    with_items:
-      - python3-pip 
-
-  - name: Install lockfile python package
-    pip:
-      name: lockfile
-
-      
-
 - hosts:
   - vagrant_hosts
   user: vagrant
   vars:
-    vm_name2: frank
     ansible_python_interpreter: "/usr/bin/env python"
+    vm_name2: frank
   gather_facts: True
              
   tasks:
   
   - name: Lets see if we can login
-    action: command uname -a
+    command: uname -a
     
   - name: Lets see all the ansible vars about vagrant hosts...
-    action: setup      
+    setup:      
       
   - name: Generate a ./blah_ansible.vars to check for hostvars
     action: template src=test-vagrant-hostinfo.j2 dest=/tmp/localhost_ansible.vars
     
   - name: Take a look at the outputs ...  (Messy!)
-    action: command cat /tmp/localhost_ansible.vars
+    command: cat /tmp/localhost_ansible.vars
           
   - name: Shut them down ...
-    local_action: vagrant 
-                  state=halt
-                  vm_name='{{vm_name2}}'
+    local_action: 
+      module: vagrant
+      state: halt
+      vm_name: '{{vm_name2}}'
                   
   - name: Now clear it out ...
-    local_action: vagrant command=clear
+    local_action: 
+      module: vagrant 
+      command: clear
