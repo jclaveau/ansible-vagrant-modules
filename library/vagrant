@@ -689,9 +689,13 @@ def main():
                 module.fail_json(msg = "Unknown vagrant subcommand: \"%s\"." % (cmd))
             
     except subprocess.CalledProcessError as e:     
-        module.fail_json(msg = "Vagrant command failed: %s." % (e))
-#    except Exception as e:
-#        module.fail_json(msg = e.__str__())
+        module.fail_json(msg = "Vagrant command failed: %s\n%s" % (
+            e, 
+            'Details in: '+VAGRANT_LOGFILE if log  
+            else 'Add "log: true" option to find log in: '+VAGRANT_LOGFILE
+        ))
+    # except Exception as e:
+    #     module.fail_json(msg = e.__str__())
     module.exit_json(status = "success")
   
 
