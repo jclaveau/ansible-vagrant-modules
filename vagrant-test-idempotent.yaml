@@ -4,43 +4,51 @@
 #  registers it in the inventory under 
 #  the group "vagrant_hosts"
 # then logs in and pokes around.
-#
+# Usage:
+# ansible-playbook -i inventory/ansible/hosts vagrant-test-idempotent.yaml
+
 - hosts:
   - localhost
   connection: local
   gather_facts: False
 
   vars:
-    box_name: lucid32
-    box_path: http://files.vagrantup.com/lucid32.box
+    ansible_python_interpreter: "/usr/bin/env python"
+    box_name: debian/buster64
+    box_path: https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/virtualbox.box
+    # https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/libvirt.box
     vm_name: frank
 
   tasks:
   - name: Fire up a set of vagrant instances to log into
-    local_action: vagrant
-        state=present
-        box_name='{{box_name}}'
-        box_path='{{box_path}}'
-        vm_name='{{vm_name}}'
-        count=3
+    local_action: 
+      module: vagrant
+      state: up
+      box_name: '{{box_name}}'
+      box_path: '{{box_path}}'
+      vm_name: '{{vm_name}}'
+      count: 3
+      log: true
     register: vagrant
     
   - name: Remind us about the vagrant private key ...
-    action: debug 
-            msg="Be sure to add the ssh private key for vagrant, here ... '{{vagrant.instances[0].key}}'."
+    debug: 
+      msg: "Be sure to add the ssh private key for vagrant, here ... '{{vagrant.instances[0].key}}'."
   
   - name: Host info ...
-    action: debug
-            msg='{{item.public_ip}}{{item.port}}' 
-    with_items: '{{vagrant.instances}}'
+    debug:
+      msg: '{{item.public_ip}}:{{item.port}}' 
+    loop: '{{vagrant.instances}}'
       
   - name: Capture that host's contact info into the inventory (the hostname is a unique ID from Vagrant ... )
-    action: add_host 
-            hostname='{{item.vagrant_name}}' 
-            ansible_ssh_port='{{item.port}}' 
-            ansible_ssh_host='{{item.public_ip}}'
-            groupname=vagrant_hosts
-    with_items: '{{vagrant.instances}}'
+    ansible.builtin.add_host: 
+      groupname: vagrant_hosts
+      hostname: '{{item.vagrant_name}}' 
+      ansible_ssh_port: '{{item.port}}' 
+      ansible_ssh_host: '{{item.public_ip}}'
+      ansible_ssh_private_key_file: '{{item.key}}'
+      ansible_ssh_args: ' -o StrictHostKeyChecking=no -o IdentitiesOnly=yes ' # avoids ssh key storing and fixes warnings "sftp|scp transfer mechanism failed on [127.0.0.1]"
+    loop: '{{vagrant.instances}}'
     
 #
 # Run on the vagrant_hosts group, checking that we have basic ssh access...
@@ -49,6 +57,7 @@
   - vagrant_hosts
   user: vagrant
   vars:
+    ansible_python_interpreter: "/usr/bin/env python"
     vm_name: frank
   
   gather_facts: True
@@ -68,9 +77,12 @@
 # Shut them down 
 #
   - name: Now shut them down ...
-    local_action: vagrant 
-                  state=absent 
-                  vm_name='{{vm_name}}'
+    local_action: 
+      module: vagrant
+      state: halt
+      vm_name: '{{vm_name}}'
                   
   - name: Now clear it out ...
-    local_action: vagrant command=clear
+    local_action: 
+      module: vagrant
+      command: clear
