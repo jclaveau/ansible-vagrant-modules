@@ -1,10 +1,14 @@
 ---
+# Usage:
+# ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory/ansible/hosts vagrant-test-subcommands.yaml --ssh-extra-args='-o IdentitiesOnly=yes'
+
 - hosts:
   - localhost
   connection: local
   gather_facts: False
 
-#  vars:
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python"
 #    keypair: robparrott-ec2
 #    instance_type: t1.micro
 #    security_group: my-little-instance
@@ -17,56 +21,73 @@
 
   tasks:
   - name: Fire up a vagrant instance
-    local_action: vagrant
-        command=up
-        box_name=centos6
+    local_action: 
+      module: vagrant
+      command: up
+      box_name: debian/buster64
+      log: true
     register: vagrant
     
   - name: Fire up another couple vagrant instances
-    local_action: vagrant
-        command=up
-        box_name=lucid32
-        vm_name=fred
-        count=2
+    local_action: 
+      module: vagrant
+      command: up
+      box_name: debian/buster64
+      vm_name: fred
+      count: 2
+      log: true
     register: vagrant
         
   - name: Report the status of fred (with 2 instances)
-    local_action: vagrant
-        command=status
-        vm_name=fred
+    local_action: 
+      module: vagrant
+      command: status
+      vm_name: fred
+      log: true
     register: vagrant    
         
   - name: Report the status of everyone (three total ...)
-    local_action: vagrant
-        command=status
-    register: vagrant 
-    
+    local_action: 
+      module: vagrant
+      command: status
+      log: true
+    register: vagrant     
     
   - name: Report the configuration info of fred
-    local_action: vagrant
-        command=config
-        vm_name=fred
+    local_action: 
+      module: vagrant
+      command: config
+      vm_name: fred
+      log: true
     register: vagrant    
     
   - name: Stop one
-    local_action: vagrant
-        command=halt
-        vm_name=fred
+    local_action: 
+      module: vagrant
+      command: halt
+      vm_name: fred
+      log: true
     register: vagrant 
             
   - name: Stop all
-    local_action: vagrant
-        command=halt
+    local_action: 
+      module: vagrant
+      command: halt
+      log: true
     register: vagrant 
             
   - name: Destroy 'em
-    local_action: vagrant
-        command=destroy
+    local_action: 
+      module: vagrant
+      command: destroy
+      log: true
     register: vagrant 
     
   - name: Clear it out
-    local_action: vagrant
-        command=clear
+    local_action: 
+      module: vagrant
+      command: clear
+      log: true
     register: vagrant 
 
 
