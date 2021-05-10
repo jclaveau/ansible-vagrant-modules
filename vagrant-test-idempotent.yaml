@@ -65,13 +65,15 @@
   tasks:
   
   - name: Let's see if we can login
-    action: command uname -a
+    command: uname -a
     
   - name: Let's see all the ansible vars about vagrant hosts...
-    action: setup
+    setup:
   
   - name: Generate a ./blah_ansible.vars to check for hostvars
-    action: template src=test-vagrant-hostinfo.j2 dest=/tmp/localhost_ansible.vars
+    template: 
+      src: test-vagrant-hostinfo.j2 
+      dest: /tmp/localhost_ansible.vars
     
 #    
 # Shut them down 
