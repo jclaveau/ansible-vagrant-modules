@@ -547,7 +547,7 @@ def main():
             box_path=dict(),
             vm_name=dict(),
             forward_ports=dict(),
-            count = dict(default='1'),
+            count = dict(default=1, type='int'),
             vagrant_root = dict(default='.'),
             log=dict(default=False, type='bool'),
             config_code=dict(default=""),
@@ -570,6 +570,7 @@ def main():
     share_folder = module.params.get('share_folder')
     share_mount = module.params.get('share_mount')
     provider = module.params.get('provider')
+    count = module.params.get('count') 
 
     global VAGRANT_ROOT
     VAGRANT_ROOT = os.path.abspath(os.path.join(vagrant_root, ".vagrant"))
@@ -589,7 +590,6 @@ def main():
         forward_ports=forward_ports.split(',')
     if forward_ports == None: forward_ports=[]
 
-    count = module.params.get('count') 
  
     # Initialize vagrant
     vgw = VagrantWrapper(log=log
