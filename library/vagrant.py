@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -tt
+#!/usr/bin/env python
 # This file is part of Ansible
 #
 # Ansible is free software: you can redistribute it and/or modify
