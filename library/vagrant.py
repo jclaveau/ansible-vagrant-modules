@@ -15,6 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
+# https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/future-import-boilerplate.html
+# https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/metaclass-boilerplate.html
 
 DOCUMENTATION = '''
 ---
@@ -83,11 +87,13 @@ examples:
 requirements: [ "vagrant" ]
 author: Rob Parrott
 '''
+
 import sys
 import subprocess
 import os.path
 import json
 from ansible.module_utils.basic import AnsibleModule
+
 
 VAGRANT_FILE_HEAD = "Vagrant.configure(\"2\") do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
