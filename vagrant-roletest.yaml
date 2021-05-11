@@ -1,9 +1,0 @@
----
-
-- hosts: localhost
-#  gather_facts: false
-  roles:
-    - role: vagrantboxmaker
-      in_vagrantfile: "{{playbook_dir}}/Vagrantfile.roletest"
-      out_boxfile: "{{playbook_dir}}/precise32.box"
-     
