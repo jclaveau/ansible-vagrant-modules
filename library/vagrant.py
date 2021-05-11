@@ -15,24 +15,48 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import (absolute_import, division, print_function)1
+from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/future-import-boilerplate.html
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/metaclass-boilerplate.html
+import sys
+import subprocess
+import os.path
+import json
+from ansible.module_utils.basic import AnsibleModule
+import fcntl
+from io import StringIO
+
+try:
+    import lockfile
+except ImportError:
+    print("Python module lockfile is not installed. Falling back to using flock(), which will fail on Windows.")
+    import platform
+    if any((n in platform.system().lower() for n in ('cyg', 'win', 'nt'))):
+        sys.exit(1)
+
+try:
+    import vagrant
+except ImportError:
+    print("failed=True msg='python-vagrant required for this module'")
+    sys.exit(1)
+
 
 DOCUMENTATION = '''
 ---
 module: vagrant
 short_description: create a local instance via vagrant
 description:
-     - creates VM instances via vagrant and optionally waits for it to be 'running'. This module has a dependency on python-vagrant.
+     - creates VM instances via vagrant and optionally waits for it to be
+       'running'. This module has a dependency on python-vagrant.
 version_added: "100.0"
 options:
   state:
     description: Should the VMs be "up" or "halt"
   cmd:
     description:
-      - vagrant subcommand to execute. Can be "up," "status," "config," "ssh," "halt," "destroy" or "clear."
+      - vagrant subcommand to execute. Can be "up," "status," "config,"
+        "ssh," "halt," "destroy" or "clear."
     required: false
     default: null
     aliases: ['command']
@@ -70,13 +94,17 @@ options:
   share_folder:
     default: None
     description:
-      - shared folder directory which mounts to /vagrant on the machine by default
+      - shared folder directory which mounts to /vagrant on the machine
+        by default
   share_mount:
     default: /vagrant
   config_code:
     default: ""
     description:
-      - custom configuation code that goes in the vagrantfile such as hypervisor options. the word config. will be converted to config_"machine" so that you can have machine-specific options.
+      - custom configuation code that goes in the vagrantfile such as
+        hypervisor options.
+        The word config will be converted to config_"machine" so that
+        you can have machine-specific options.
   provider:
     default: virtualbox
     description:
@@ -84,16 +112,9 @@ options:
 examples:
    - code: 'local_action: vagrant cmd=up box_name=lucid32 vm_name=webserver'
      description:
-requirements: [ "vagrant" ]
+requirements: ["vagrant"]
 author: Rob Parrott
 '''
-
-import sys
-import subprocess
-import os.path
-import json
-from ansible.module_utils.basic import AnsibleModule
-
 
 VAGRANT_FILE_HEAD = "Vagrant.configure(\"2\") do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
@@ -103,14 +124,13 @@ VAGRANT_FILE_VM_STANZA_HEAD = """
     %s_config.vm.box = "%s"
     %s_config.vm.synced_folder ".", "/vagrant", disabled: true
 """
-VAGRANT_FILE_HOSTNAME_LINE     = "    %s_config.vm.host_name = \"%s\"\n"
+VAGRANT_FILE_HOSTNAME_LINE = "    %s_config.vm.host_name = \"%s\"\n"
 VAGRANT_FILE_PORT_FORWARD_LINE = "    %s_config.vm.network \"forwarded_port\", guest: %s, host: %s\n"
-VAGRANT_FILE_SYNCED_FOLDER_LINE ="    %s_config.vm.synced_folder \"%s\", \"%s\", type: \"nfs\" , disabled: %s"
-VAGRANT_FILE_VM_STANZA_TAIL="  end\n"
-
+VAGRANT_FILE_SYNCED_FOLDER_LINE = "    %s_config.vm.synced_folder \"%s\", \"%s\", type: \"nfs\" , disabled: %s"
+VAGRANT_FILE_VM_STANZA_TAIL = "  end\n"
 VAGRANT_FILE_TAIL = "\nend\n"
 
-VAGRANT_LOG_FN='vagrant.log'
+VAGRANT_LOG_FN = 'vagrant.log'
 
 # If this is already a network on your machine, this may fail ... change it here.
 VAGRANT_INT_IP = "192.168.179.%s"
@@ -118,37 +138,20 @@ VAGRANT_INT_IP = "192.168.179.%s"
 DEFAULT_VM_NAME = "ansiblevagrant"
 
 
-try:
-    import lockfile
-except ImportError:
-    print("Python module lockfile is not installed. Falling back to using flock(), which will fail on Windows.")
-    import platform
-    if any((n in platform.system().lower() for n in ('cyg','win','nt' )))==True:
-        sys.exit(1)
-
-
-
-try:
-    import vagrant
-except ImportError:
-    print("failed=True msg='python-vagrant required for this module'")
-    sys.exit(1)
-
 class VagrantWrapper(object):
 
-    def __init__(self,*args,**kwargs):
+    def __init__(self, *args, **kwargs):
 
         '''
         Wrapper around the python-vagrant module for use with ansible.
         Note that Vagrant itself is non-thread safe, as is the python-vagrant lib, so we need to lock on basically all operations ...
         '''
 
-        log=kwargs.setdefault('log',False)
-        self.config_code=kwargs.setdefault('config_code',"\n;\n;")
-        self.share_folder=kwargs.setdefault('share_folder',".")
-        self.share_mount=kwargs.setdefault('share_mount',"/vagrant")
-
-        self.provider = kwargs.setdefault('provider',"virtualbox")
+        log = kwargs.setdefault('log', False)
+        self.config_code = kwargs.setdefault('config_code', "\n;\n;")
+        self.share_folder = kwargs.setdefault('share_folder', ".")
+        self.share_mount = kwargs.setdefault('share_mount', "/vagrant")
+        self.provider = kwargs.setdefault('provider', "virtualbox")
 
         # Get a lock
         self.lock = None
@@ -156,25 +159,25 @@ class VagrantWrapper(object):
         try:
             self.lock = lockfile.FileLock(VAGRANT_LOCKFILE)
             self.lock.acquire()
-        except:
+        except Exception:
             # fall back to using flock instead ...
             try:
-                import fcntl
-                self.lock = open(VAGRANT_LOCKFILE, 'w')
-                fcntl.flock(self.lock, fcntl.LOCK_EX)
-            except:
+                with open(VAGRANT_LOCKFILE, 'w') as self.lock:
+                    fcntl.flock(self.lock, fcntl.LOCK_EX)
+            except Exception:
                 print("failed=True msg='Could not get a lock for using vagrant. Install python module \"lockfile\" to use vagrant on non-POSIX filesytems.'")
                 sys.exit(1)
 
         # Initialize vagrant and state files
 
-        vgargs=[]; vgkwargs=dict(root=VAGRANT_ROOT)
-        if log==True:
+        vgargs = []
+        vgkwargs = dict(root=VAGRANT_ROOT)
+        if log:
             log_cm = vagrant.make_file_cm(VAGRANT_LOGFILE)
             vgkwargs['out_cm'] = log_cm
             vgkwargs['err_cm'] = log_cm
 
-        self.vg = vagrant.Vagrant(*vgargs,**vgkwargs)
+        self.vg = vagrant.Vagrant(*vgargs, **vgkwargs)
 
         # operation will create a default data structure if none present
         self._deserialize()
@@ -184,7 +187,7 @@ class VagrantWrapper(object):
         "Clean up file locks"
         try:
             self.lock.release()
-        except:
+        except Exception:
             os.close(self.lock)
             os.unlink(self.lock)
 
@@ -193,26 +196,26 @@ class VagrantWrapper(object):
         Given a specified name and URL, import a Vagrant "box" for use.
         """
         changed = False
-        if box_name == None:
+        if box_name is None:
             raise Exception("You must specify a box_name with a box_path for vagrant.")
 
-        #get vagrant's list of boxes
+        # get vagrant's list of boxes
         boxlist = self.vg.box_list()
 
-        #make a list of just the 'name' attribute
+        # make a list of just the 'name' attribute
         boxnamelist = []
         for Box in boxlist:
             boxname = Box.name
             boxnamelist.append(boxname)
 
-        #check to see if 'box_name' is in this list
+        # check to see if 'box_name' is in this list
         if box_name not in boxnamelist:
             self.vg.box_add(box_name, box_path)
             changed = True
 
         return changed
 
-    def up(self, box_name, vm_name=None, count=1, box_path=None, ports=[],share_folder=None):
+    def up(self, box_name, vm_name=None, count=1, box_path=None, ports=None, share_folder=None):
         """
         Fire up a given VM and name it, using vagrant's multi-VM mode.
         """
@@ -220,30 +223,30 @@ class VagrantWrapper(object):
         new_box = False
         changed = False
 
-        if vm_name == None:
+        if vm_name is None:
             vm_name = DEFAULT_VM_NAME
-        if box_name == None:
+        if box_name is None:
             raise Exception("You must specify a box name for Vagrant.")
-        if box_path != None:
+        if box_path is not None:
             changed = self.prepare_box(box_name, box_path)
 
         for c in range(int(count)):
 
             self._deserialize()
 
-            d = self._get_instance(vm_name,c)
-            #vm_name is new, so assign box_name and ports
+            d = self._get_instance(vm_name, c)
+            # vm_name is new, so assign box_name and ports
             if 'box_name' not in d:
                 d['box_name'] = box_name
                 d['forward_ports'] = ports
-            #vm_name is not new, let's check for changes
+            # vm_name is not new, let's check for changes
             else:
                 if d['box_name'] != box_name:
-                     d['box_name'] = box_name
-                     new_box = True
+                    d['box_name'] = box_name
+                    new_box = True
                 if d['forward_ports'] != ports:
-                     d['forward_ports'] = ports
-                     new_port = True
+                    d['forward_ports'] = ports
+                    new_port = True
 
             # Save our changes and run
             inst_array = self._instances()[vm_name]
@@ -255,15 +258,15 @@ class VagrantWrapper(object):
             vgn = d['vagrant_name']
             status = self.vg.status(vgn)[0].state
             if new_box:
-                if status == 'running' or 'poweroff' or 'saved':
+                if status in ['running', 'poweroff', 'saved']:
                     self.vg.destroy(vm_name=d['vagrant_name'])
                 self.vg.up(False, vm_name=d['vagrant_name'], provider=self.provider)
                 changed = True
 
-            #not new box
+            # not new box
             else:
                 if status != 'running':
-                    #bring it up, new port will take care of itself
+                    # bring it up, new port will take care of itself
                     self.vg.up(False, vm_name=d['vagrant_name'], provider=self.provider)
                     changed = True
                 else:
@@ -275,12 +278,13 @@ class VagrantWrapper(object):
         ad = self._build_instance_array_for_ansible(vm_name)
         return (changed, ad)
 
-    def status(self, vm_name = None, n = -1):
+    def status(self, vm_name=None, n=-1):
         """
         Return the run status of the VM instance. If no instance N is given, returns first instance.
         """
         vm_names = []
-        if vm_name != None: vm_names = [vm_name]
+        if vm_name is not None:
+            vm_names = [vm_name]
         else:
             vm_names = list(self._instances().keys())
 
@@ -289,7 +293,7 @@ class VagrantWrapper(object):
             stat_array = []
             instance_array = self.vg_data['instances'][vmn]
             if n >= 0:
-                instance_array = [ self._get_instance(vmn,n) ]
+                instance_array = [self._get_instance(vmn, n)]
             for inst in instance_array:
                 vgn = inst['vagrant_name']
                 stat_array.append(self.vg.status(vgn))
@@ -297,12 +301,13 @@ class VagrantWrapper(object):
 
         return (False, statuses)
 
-    def config(self, vm_name, n = -1):
+    def config(self, vm_name, n=-1):
         """
         Return info on SSH for the running instance.
         """
         vm_names = []
-        if vm_name != None: vm_names = [vm_name]
+        if vm_name is not None:
+            vm_names = [vm_name]
         else:
             vm_names = list(self._instances().keys())
 
@@ -311,7 +316,7 @@ class VagrantWrapper(object):
             conf_array = []
             instance_array = self.vg_data['instances'][vmn]
             if n >= 0:
-                instance_array = [ self._get_instance(vmn,n) ]
+                instance_array = [self._get_instance(vmn, n)]
             for inst in instance_array:
                 cnf = self.vg.conf(None, inst['vagrant_name'])
                 conf_array.append(cnf)
@@ -319,13 +324,14 @@ class VagrantWrapper(object):
 
         return (False, configs)
 
-    def halt(self, vm_name = None, n=-1):
+    def halt(self, vm_name=None, n=-1):
         """
         Shuts down a vm_name or all VMs.
         """
         changed = False
         vm_names = []
-        if vm_name != None: vm_names = [vm_name]
+        if vm_name is not None:
+            vm_names = [vm_name]
         else:
             vm_names = list(self._instances().keys())
 
@@ -334,7 +340,7 @@ class VagrantWrapper(object):
             stat_array = []
             instance_array = self.vg_data['instances'][vmn]
             if n >= 0:
-                instance_array = [ self.vg_data['instances'][vmn][n] ]
+                instance_array = [self.vg_data['instances'][vmn][n]]
             for inst in instance_array:
                 vgn = inst['vagrant_name']
                 if self.vg.status(vgn) == 'running':
@@ -355,7 +361,7 @@ class VagrantWrapper(object):
         (changed, stats) = self.halt(vm_name, n)
 
         self.vg.destroy(vm_name)
-        if vm_name != None:
+        if vm_name is not None:
             self._instances().pop(vm_name)
         else:
             self.vg_data['instances'] = {}
@@ -377,10 +383,12 @@ class VagrantWrapper(object):
                 os.remove(af)
 
         return changed
+
 #
 # Helper Methods
 #
-    def _instances(self): return self.vg_data['instances']
+    def _instances(self):
+        return self.vg_data['instances']
 
     def _get_instance(self, vm_name, n):
 
@@ -390,23 +398,24 @@ class VagrantWrapper(object):
         if vm_name in instances:
             inst_array = instances[vm_name]
 
-        if len(inst_array) > n: return inst_array[n]
+        if len(inst_array) > n:
+            return inst_array[n]
 
         #
         # otherwise create one afresh
         #
 
         d = dict()
-        N = self.vg_data['num_inst']+1
-        #n = len(instances.keys())+1
+        N = self.vg_data['num_inst'] + 1
+        # n = len(instances.keys())+1
         d['n'] = n
         d['N'] = N
         d['name'] = vm_name
         if n > 0:
-            d['vagrant_name'] = "%s_inst%d" % (vm_name.replace("-","_"),n+1)
+            d['vagrant_name'] = "%s_inst%d" % (vm_name.replace("-", "_"), n + 1)
         else:
-            d['vagrant_name'] = "%s" % (vm_name.replace("-","_"))
-        d['internal_ip'] = VAGRANT_INT_IP % (255-N)
+            d['vagrant_name'] = "%s" % (vm_name.replace("-", "_"))
+        d['internal_ip'] = VAGRANT_INT_IP % (255 - N)
         d['forward_ports'] = []
         d['config_code'] = self.config_code
         d['share_folder'] = self.share_folder
@@ -418,8 +427,6 @@ class VagrantWrapper(object):
 
         return d
 
-
-    #
     # Serialize/Deserialize current state to a JSON representation, and
     #  a file format for Vagrant.
     #
@@ -430,79 +437,79 @@ class VagrantWrapper(object):
         self._save_state()
         self._write_vagrantfile()
 
-    def _deserialize(self): self._load_state()
+    def _deserialize(self):
+        self._load_state()
 
-
-    #
     # Manage a JSON representation of vagrantfile for statefulness across invocations.
     #
     def _load_state(self):
 
-        self.vg_data = dict(num_inst=0, instances = {})
+        self.vg_data = dict(num_inst=0, instances={})
         if os.path.isfile(VAGRANT_DICT_FILE):
-            json_file=open(VAGRANT_DICT_FILE)
-            self.vg_data = json.load(json_file)
-            json_file.close()
+            with open(VAGRANT_DICT_FILE) as json_file:
+                self.vg_data = json.load(json_file)
+                json_file.close()
 
-    def _state_as_string(self,d):
-        from io import StringIO
+    def _state_as_string(self, d):
         io = StringIO()
         json.dump(self.vg_data, io)
         return io.getvalue()
 
     def _save_state(self):
-        json_file=open(VAGRANT_DICT_FILE, 'w')
-        json.dump(self.vg_data,json_file, sort_keys=True, indent=4, separators=(',', ': '))
-        json_file.close()
+        with open(VAGRANT_DICT_FILE, 'w') as json_file:
+            json.dump(self.vg_data, json_file, sort_keys=True, indent=4, separators=(',', ': '))
+            json_file.close()
 
     #
     # Translate the state dictionary into the Vagrantfile
     #
     def _write_vagrantfile(self):
+        with open(VAGRANT_FILE, 'w') as vfile:
+            vfile.write(VAGRANT_FILE_HEAD)
 
-        vfile = open(VAGRANT_FILE, 'w')
-        vfile.write(VAGRANT_FILE_HEAD)
+            instances = self._instances()
+            for vm_name in list(instances.keys()):
+                inst_array = instances[vm_name]
+                for c in range(len(inst_array)):
+                    d = inst_array[c]
+                    name = d['vagrant_name']
+                    ip = d['internal_ip']
+                    box_name = d['box_name']
 
-        instances = self._instances()
-        for vm_name in list(instances.keys()):
-            inst_array = instances[vm_name]
-            for c in range(len(inst_array)):
-                d = inst_array[c]
-                name = d['vagrant_name']
-                ip = d['internal_ip']
-                box_name = d['box_name']
+                    vfile.write(VAGRANT_FILE_VM_STANZA_HEAD %
+                                (name, name, name, ip, name, box_name, name))
 
-                vfile.write(VAGRANT_FILE_VM_STANZA_HEAD %
-                            (name, name, name, ip, name, box_name, name) )
+                    vfile.write(VAGRANT_FILE_HOSTNAME_LINE % (name, name.replace('_', '-')))
 
-                vfile.write(VAGRANT_FILE_HOSTNAME_LINE  % (name, name.replace('_','-'))  )
+                    if self.share_folder == "":
+                        sfd = 'true'  # share folder disabled =
+                        sf = '.'  # just whatever fill it w/ something valid
+                    else:
+                        sfd = 'false'
+                        sf = self.share_folder
+                    vfile.write(VAGRANT_FILE_SYNCED_FOLDER_LINE % (name, sf, self.share_mount, sfd))
 
-                if self.share_folder=="":
-                    sfd='true' #share folder disabled =
-                    sf= '.' #just whatever fill it w/ something valid
-                else:
-                    sfd='false'
-                    sf=self.share_folder
-                vfile.write(VAGRANT_FILE_SYNCED_FOLDER_LINE  % (name, sf , self.share_mount , sfd ))
+                    if 'forward_ports' in d:
+                        for p in d['forward_ports']:
+                            if p:
+                                vfile.write(VAGRANT_FILE_PORT_FORWARD_LINE % (name, p, (int(p) + 10000)))
 
-                if 'forward_ports' in d:
-                    for p in d['forward_ports']:
-                        if p:
-                            vfile.write(VAGRANT_FILE_PORT_FORWARD_LINE % (name,p,(int(p)+10000)) )
-                config_code=""
-                for aline in d['config_code'].splitlines():
-                    if len(aline)==0: continue
-                    if aline.lstrip()[0] != ';': #ruby comment line
-                        config_code+='\n    '
-                        if 'config.' in aline:
-                            config_code+=(aline.replace('config.','%s_config.')) % name
+                    config_code = ""
+                    for aline in d['config_code'].splitlines():
+                        if len(aline) == 0:
+                            continue
+                        if aline.lstrip()[0] != ';':  # ruby comment line
+                            config_code += '\n    '
+                            if 'config.' in aline:
+                                config_code += (aline.replace('config.', '%s_config.')) % name
+                            else:
+                                config_code += aline
                         else:
-                            config_code+=aline
-                    else: continue
-                vfile.write(config_code+'\n'+VAGRANT_FILE_VM_STANZA_TAIL)
+                            continue
+                    vfile.write(config_code + '\n' + VAGRANT_FILE_VM_STANZA_TAIL)
 
-        vfile.write(VAGRANT_FILE_TAIL)
-        vfile.close()
+            vfile.write(VAGRANT_FILE_TAIL)
+            vfile.close()
 
     #
     # To be returned to ansible with info about instances
@@ -511,7 +518,7 @@ class VagrantWrapper(object):
 
         vm_names = []
         instances = self._instances()
-        if vmname != None:
+        if vmname is not None:
             vm_names = [vmname]
         else:
             vm_names = list(instances.keys())
@@ -520,49 +527,50 @@ class VagrantWrapper(object):
         for vm_name in vm_names:
             for inst in instances[vm_name]:
                 vagrant_name = inst['vagrant_name']
-                cnf = self.vg.conf(None,vagrant_name)
+                cnf = self.vg.conf(None, vagrant_name)
                 vg_data = instances[vm_name]
-                if cnf != None:
+                if cnf is not None:
                     d = {
-                         'name' : vm_name,
-                         'vagrant_name' : vagrant_name,
-                         'hostname' : vagrant_name.replace('_','-'),
-                         'id': cnf['Host'],
-                         'public_ip': cnf['HostName'],
-                         'internal_ip': inst['internal_ip'],
-                         'public_dns_name': cnf['HostName'],
-                         'port' : cnf['Port'],
-                         'username' : cnf['User'],
-                         'key' : cnf['IdentityFile'],
-                         'status' : self.vg.status(vagrant_name)
-                         }
+                        'name': vm_name,
+                        'vagrant_name': vagrant_name,
+                        'hostname': vagrant_name.replace('_', '-'),
+                        'id': cnf['Host'],
+                        'public_ip': cnf['HostName'],
+                        'internal_ip': inst['internal_ip'],
+                        'public_dns_name': cnf['HostName'],
+                        'port': cnf['Port'],
+                        'username': cnf['User'],
+                        'key': cnf['IdentityFile'],
+                        'status': self.vg.status(vagrant_name)
+                    }
                     ans_instances.append(d)
 
         return ans_instances
 
-#--------
+
+# --------
 # MAIN
-#--------
+# --------
 def main():
 
     module = AnsibleModule(
-        argument_spec = dict(
+        argument_spec=dict(
             state=dict(),
-            cmd=dict(required=False, aliases = ['command']),
-            box_name=dict(required=False, aliases = ['image']),
+            cmd=dict(required=False, aliases=['command']),
+            box_name=dict(required=False, aliases=['image']),
             box_path=dict(),
             vm_name=dict(),
             forward_ports=dict(),
-            count = dict(default=1, type='int'),
-            vagrant_root = dict(default='.'),
+            count=dict(default=1, type='int'),
+            vagrant_root=dict(default='.'),
             log=dict(default=False, type='bool'),
             config_code=dict(default=""),
-            #"" for None as i'm not sure of the None behavior python  <-> json
+            # "" for None as i'm not sure of the None behavior python  <-> json
             share_folder=dict(default=""),
             share_mount=dict(default='/vagrant'),
             provider=dict(default="virtualbox")
-       )
-   )
+        )
+    )
 
     state = module.params.get('state')
     cmd = module.params.get('cmd')
@@ -584,84 +592,78 @@ def main():
         os.makedirs(VAGRANT_ROOT)
 
     global VAGRANT_FILE
-    VAGRANT_FILE = VAGRANT_ROOT+"/Vagrantfile"
+    VAGRANT_FILE = VAGRANT_ROOT + "/Vagrantfile"
     global VAGRANT_DICT_FILE
-    VAGRANT_DICT_FILE = VAGRANT_ROOT+"/Vagrantfile.json"
+    VAGRANT_DICT_FILE = VAGRANT_ROOT + "/Vagrantfile.json"
     global VAGRANT_LOCKFILE
-    VAGRANT_LOCKFILE = VAGRANT_ROOT+"/.vagrant-lock"
+    VAGRANT_LOCKFILE = VAGRANT_ROOT + "/.vagrant-lock"
     global VAGRANT_LOGFILE
-    VAGRANT_LOGFILE = VAGRANT_ROOT+'/vagrant.log'
+    VAGRANT_LOGFILE = VAGRANT_ROOT + '/vagrant.log'
 
-    if forward_ports != None:
-        forward_ports=forward_ports.split(',')
-    if forward_ports == None: forward_ports=[]
-
+    if forward_ports is not None:
+        forward_ports = forward_ports.split(',')
+    if forward_ports is None:
+        forward_ports = []
 
     # Initialize vagrant
-    vgw = VagrantWrapper(log=log
-                         ,config_code=config_code
-                         ,share_folder=share_folder,share_mount=share_mount
-                         ,provider=provider)
+    vgw = VagrantWrapper(
+        log=log, config_code=config_code, share_folder=share_folder,
+        share_mount=share_mount, provider=provider
+    )
 
     #
     # Check if we are being invoked under an idempotency idiom of "state=present" or "state=absent"
     #
     try:
-        if state != None:
+        if state is not None:
 
             if state != 'halt' and state != 'up':
-                module.fail_json(msg = "State must be \"halt\" or \"up\" in vagrant module.")
+                module.fail_json(msg="State must be \"halt\" or \"up\" in vagrant module.")
 
             if state == 'up':
-
                 changd, insts = vgw.up(box_name, vm_name, count, box_path, forward_ports)
-                module.exit_json(changed = changd, instances = insts)
+                module.exit_json(changed=changd, instances=insts)
 
             if state == 'halt':
                 changd = vgw.halt(vm_name)
-                module.exit_json(changed = changd, status = vgw.status(vm_name))
-
+                module.exit_json(changed=changd, status=vgw.status(vm_name))
 
         #
         # Main command tree for old style invocation
         #
 
         else:
-
             if cmd == 'up':
-#                print "I am running cmd up"
-                if count == None: count = 1
+                # print "I am running cmd up"
+                if count is None:
+                    count = 1
                 (changd, insts) = vgw.up(box_name, vm_name, count, box_path, forward_ports)
-                module.exit_json(changed = changd, instances = insts)
+                module.exit_json(changed=changd, instances=insts)
 
             elif cmd == 'status':
-
-#            if vm_name == None:
-#                module.fail_json(msg = "Error: you must specify a vm_name when calling status." )
+                # if vm_name is None:
+                #     module.fail_json(msg = "Error: you must specify a vm_name when calling status." )
 
                 (changd, result) = vgw.status(vm_name)
-                module.exit_json(changed = changd, status = result)
+                module.exit_json(changed=changd, status=result)
 
             elif cmd == "config" or cmd == "conf":
-
-                if vm_name == None:
-                    module.fail_json(msg = "Error: you must specify a vm_name when calling config." )
+                if vm_name is None:
+                    module.fail_json(msg="Error: you must specify a vm_name when calling config.")
                 (changd, cnf) = vgw.config(vm_name)
-                module.exit_json(changed = changd, config = cnf)
+                module.exit_json(changed=changd, config=cnf)
 
             elif cmd == 'ssh':
-
-                if vm_name == None:
-                    module.fail_json(msg = "Error: you must specify a vm_name when calling ssh." )
+                if vm_name is None:
+                    module.fail_json(msg="Error: you must specify a vm_name when calling ssh.")
 
                 (changd, cnf) = vgw.config(vm_name)
                 sshcmd = "ssh -i %s -p %s %s@%s" % (cnf["IdentityFile"], cnf["Port"], cnf["User"], cnf["HostName"])
                 sshmsg = "Execute the command \"vagrant ssh %s\"" % (vm_name)
-                module.exit_json(changed = changd, msg = sshmsg, SshCommand = sshcmd)
+                module.exit_json(changed=changd, msg=sshmsg, SshCommand=sshcmd)
 
 #            elif cmd == "load_key":
-#
-#                if vm_name == None:
+#                if vm_name is None:
 #                    module.fail_json(msg = "Error: you must specify a vm_name when calling load_key." )
 #
 #                cnf = vg.config(vm_name)
@@ -676,38 +678,32 @@ def main():
 #                module.exit_json(changed = True, msg = sshmsg, SshCommand = sshcmd)
 
             elif cmd == 'halt':
-
                 (changd, stats) = vgw.halt(vm_name)
-                module.exit_json(changed = changd, status = stats)
+                module.exit_json(changed=changd, status=stats)
 
             elif cmd == 'destroy':
-
                 changd = vgw.destroy(vm_name)
-                module.exit_json(changed = changd, status = vgw.status(vm_name))
+                module.exit_json(changed=changd, status=vgw.status(vm_name))
 
             elif cmd == 'clear':
-
                 changd = vgw.clear()
-                module.exit_json(changed = changd)
+                module.exit_json(changed=changd)
 
             else:
-
-                module.fail_json(msg = "Unknown vagrant subcommand: \"%s\"." % (cmd))
+                module.fail_json(msg="Unknown vagrant subcommand: \"%s\"." % (cmd))
 
     except subprocess.CalledProcessError as e:
-        module.fail_json(msg = "Vagrant command failed: %s\n%s" % (
+        module.fail_json(msg="Vagrant command failed: %s\n%s" % (
             e,
-            'Details in: '+VAGRANT_LOGFILE if log
-            else 'Add "log: true" option to find log in: '+VAGRANT_LOGFILE
+            'Details in: ' + VAGRANT_LOGFILE if log
+            else 'Add "log: true" option to find log in: ' + VAGRANT_LOGFILE
         ))
     # except Exception as e:
     #     module.fail_json(msg = e.__str__())
-    module.exit_json(status = "success")
-
-
-
+    module.exit_json(status="success")
 
 # this is magic, see lib/ansible/module_common.py
-#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+# <<INCLUDE_ANSIBLE_MODULE_COMMON>>
+
 
 main()
