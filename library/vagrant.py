@@ -1,20 +1,13 @@
 #!/usr/bin/env python
-# This file is part of Ansible
-#
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms
-#
-# of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+
+# Copyright: (c) 2021, [Jean Claveau (https://github.com/jclaveau/ansible-vagrant-module)]
+# Copyright: (c) 2017, [Tomas Kadlec (https://github.com/majidaldo/ansible-vagrant/commits?author=tomaskadlec)]
+# Copyright: (c) 2015, [Majid alDosari (https://github.com/majidaldo/ansible-vagrant)]
+# Copyright: (c) 2015, [caljess599 (https://github.com/caljess599/ansible-vagrant)]
+# Copyright: (c) 2014, [Rob Parrot (https://github.com/robparrott/ansible-vagrant)]
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/future-import-boilerplate.html
