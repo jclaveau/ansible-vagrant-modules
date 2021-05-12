@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2021, [Jean Claveau (https://github.com/jclaveau/ansible-vagrant-module)]
@@ -12,28 +12,6 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/future-import-boilerplate.html
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/metaclass-boilerplate.html
-import sys
-import subprocess
-import os.path
-import json
-from ansible.module_utils.basic import AnsibleModule
-import fcntl
-from io import StringIO
-
-try:
-    import lockfile
-except ImportError:
-    print("Python module lockfile is not installed. Falling back to using flock(), which will fail on Windows.")
-    import platform
-    if any((n in platform.system().lower() for n in ('cyg', 'win', 'nt'))):
-        sys.exit(1)
-
-try:
-    import vagrant
-except ImportError:
-    print("failed=True msg='python-vagrant required for this module'")
-    sys.exit(1)
-
 
 DOCUMENTATION = '''
 ---
@@ -42,55 +20,80 @@ short_description: create a local instance via vagrant
 description:
      - creates VM instances via vagrant and optionally waits for it to be
        'running'. This module has a dependency on python-vagrant.
-version_added: "100.0"
+version_added: "0.0.1"
+author:
+    - "Rob Parrott (@robparrott)"
+    - "caljess599 (@caljess599)"
+    - "Majid alDosari (@majidaldo)"
+    - "Tomas Kadlec (@tomaskadlec)"
+    - "Jean Claveau (@jclaveau)"
 options:
   state:
     description: Should the VMs be "up" or "halt"
+    type: str
   cmd:
     description:
       - vagrant subcommand to execute. Can be "up," "status," "config,"
         "ssh," "halt," "destroy" or "clear."
+    type: str
     required: false
     default: null
     aliases: ['command']
   box_name:
     description:
       - vagrant boxed image to start
+    type: str
     required: false
     default: null
     aliases: ['image']
   box_path:
     description:
       - path to vagrant boxed image to start
+    type: str
     required: false
     default: null
     aliases: []
   vm_name:
     description:
       - name to give an associated VM
+    type: str
     required: false
     default: null
     aliases: []
   count:
     description:
       - number of instances to launch
+    type: int
     required: False
     default: 1
     aliases: []
   forward_ports:
     description:
       - comma separated list of ports to forward to the host
+    type: str
     required: False
     aliases: []
   log:
+    description:
+      - Whether or not Vagrant's logs must be stored
+    type: bool
     default: false
   share_folder:
-    default: None
+    default:
     description:
       - shared folder directory which mounts to /vagrant on the machine
         by default
+    type: str
   share_mount:
+    description:
+      - A shared mount
+    type: str
     default: /vagrant
+  vagrant_root:
+    description:
+      - the folder where vagrant files will be stored
+    type: str
+    default: .
   config_code:
     default: ""
     description:
@@ -98,16 +101,33 @@ options:
         hypervisor options.
         The word config will be converted to config_"machine" so that
         you can have machine-specific options.
+    type: str
   provider:
     default: virtualbox
+    type: str
     description:
       - a provider to use instead of default virtualbox
-examples:
-   - code: 'local_action: vagrant cmd=up box_name=lucid32 vm_name=webserver'
-     description:
-requirements: ["vagrant"]
-author: Rob Parrott
+requirements: ["vagrant, lockfile"]
 '''
+
+
+EXAMPLES = '''
+- name: Spawn a new VM instance
+  jclaveau.vagrant.vagrant:
+    state: up
+    vm_name: my_vm
+    boc_name: debian/buster64
+'''
+
+import sys
+import subprocess
+import os.path
+import json
+from ansible.module_utils.basic import AnsibleModule
+import fcntl
+from io import StringIO
+import vagrant
+import lockfile
 
 VAGRANT_FILE_HEAD = "Vagrant.configure(\"2\") do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
@@ -145,6 +165,7 @@ class VagrantWrapper(object):
         self.share_folder = kwargs.setdefault('share_folder', ".")
         self.share_mount = kwargs.setdefault('share_mount', "/vagrant")
         self.provider = kwargs.setdefault('provider', "virtualbox")
+        self.module = kwargs.setdefault('module', None)
 
         # Get a lock
         self.lock = None
@@ -158,8 +179,12 @@ class VagrantWrapper(object):
                 with open(VAGRANT_LOCKFILE, 'w') as self.lock:
                     fcntl.flock(self.lock, fcntl.LOCK_EX)
             except Exception:
-                print("failed=True msg='Could not get a lock for using vagrant. Install python module \"lockfile\" to use vagrant on non-POSIX filesytems.'")
-                sys.exit(1)
+                self.module.debug(
+                    "failed=True msg='Could not get "
+                    + "a lock for using vagrant. Install python "
+                    + "module \"lockfile\" to use vagrant on non-POSIX filesytems.'"
+                )
+                self.module.fail_json()
 
         # Initialize vagrant and state files
 
@@ -600,6 +625,7 @@ def main():
 
     # Initialize vagrant
     vgw = VagrantWrapper(
+        module=module,
         log=log, config_code=config_code, share_folder=share_folder,
         share_mount=share_mount, provider=provider
     )
