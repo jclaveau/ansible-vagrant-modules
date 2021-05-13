@@ -28,6 +28,9 @@ jobs:
       - name: Install python-vagrant dependency
         run: pip install python-vagrant
 
+      - name: Install coverage dependency
+        run: pip install --user coverage==4.5.4
+
       # - name: Cache Vagrant boxes
       #   uses: actions/cache@v2
       #   with:
@@ -37,4 +40,18 @@ jobs:
       #       ${{ runner.os }}-vagrant-
 
       - name: Run the integration tests
-        run: ansible-test integration --python 3.8 --no-temp-workdir
+        run: ansible-test integration --python 3.8 --coverage --no-temp-workdir
+
+      - name: Prepare coverage for Codecov.io
+        run: ansible-test coverage xml
+
+      # https://github.com/marketplace/actions/codecov
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          directory: /Users/runner/work/ansible-vagrant-module/ansible-vagrant-module/ansible_collections/jclaveau/vagrant/tests/output/reports/ # optional
+          # files: ./tests/output/reports/coverage.xml # optional
+          flags: integrationtests # optional
+          name: codecov-vagrant-collection-integration-tests # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
