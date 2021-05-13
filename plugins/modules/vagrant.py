@@ -124,10 +124,26 @@ import subprocess
 import os.path
 import json
 from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
+import traceback
 import fcntl
 from io import StringIO
-import vagrant
-import lockfile
+
+try:
+    import vagrant
+except ImportError:
+    HAS_VAGRANT_LIBRARY = False
+    VAGRANT_LIBRARY_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_VAGRANT_LIBRARY = True
+
+try:
+    import lockfile
+except ImportError:
+    HAS_LOCKFILE_LIBRARY = False
+    LOCKFILE_LIBRARY_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_LOCKFILE_LIBRARY = True
 
 VAGRANT_FILE_HEAD = "Vagrant.configure(\"2\") do |config|\n"
 VAGRANT_FILE_BOX_NAME = "  config.vm.box = \"%s\"\n"
@@ -154,7 +170,6 @@ DEFAULT_VM_NAME = "ansiblevagrant"
 class VagrantWrapper(object):
 
     def __init__(self, *args, **kwargs):
-
         '''
         Wrapper around the python-vagrant module for use with ansible.
         Note that Vagrant itself is non-thread safe, as is the python-vagrant lib, so we need to lock on basically all operations ...
@@ -169,6 +184,11 @@ class VagrantWrapper(object):
 
         # Get a lock
         self.lock = None
+
+        if not HAS_VAGRANT_LIBRARY:
+            self.module.fail_json(
+                msg=missing_required_lib('vagrant'),
+                exception=VAGRANT_LIBRARY_IMPORT_ERROR)
 
         try:
             self.lock = lockfile.FileLock(VAGRANT_LOCKFILE)
@@ -409,7 +429,6 @@ class VagrantWrapper(object):
         return self.vg_data['instances']
 
     def _get_instance(self, vm_name, n):
-
         instances = self._instances()
 
         inst_array = []
@@ -461,7 +480,6 @@ class VagrantWrapper(object):
     # Manage a JSON representation of vagrantfile for statefulness across invocations.
     #
     def _load_state(self):
-
         self.vg_data = dict(num_inst=0, instances={})
         if os.path.isfile(VAGRANT_DICT_FILE):
             with open(VAGRANT_DICT_FILE) as json_file:
@@ -720,9 +738,6 @@ def main():
     # except Exception as e:
     #     module.fail_json(msg = e.__str__())
     module.exit_json(status="success")
-
-# this is magic, see lib/ansible/module_common.py
-# <<INCLUDE_ANSIBLE_MODULE_COMMON>>
 
 
 main()

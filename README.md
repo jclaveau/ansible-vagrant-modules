@@ -1,5 +1,6 @@
 # Ansible Collection - jclaveau.vagrant
 [![Integration Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml/badge.svg)](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml)
+[![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/sanity-tests.yaml/badge.svg)](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/sanity-tests.yaml)
 
 ===============
 A vagrant module for ansible that lets you control vagrant VMs from an ansible playbook.
