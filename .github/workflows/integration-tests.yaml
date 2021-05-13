@@ -1,0 +1,40 @@
+name: Integration Tests
+on: [ push ]
+jobs:
+  # https://stackoverflow.com/questions/66261101/using-vagrant-on-github-actions-ideally-incl-virtualbox
+  integration-tests-on-macos:
+    runs-on: macos-10.15
+    defaults:
+      run:
+        working-directory: ansible_collections/jclaveau/vagrant
+
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          path: ansible_collections/jclaveau/vagrant
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Install lockfile dependency
+        run: pip install lockfile
+
+      - name: Install python-vagrant dependency
+        run: pip install python-vagrant
+
+      # - name: Cache Vagrant boxes
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.vagrant.d/boxes
+      #     key: ${{ runner.os }}-vagrant-${{ hashFiles('Vagrantfile') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-vagrant-
+
+      - name: Run the integration tests
+        run: ansible-test integration --python 3.8 --no-temp-workdir

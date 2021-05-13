@@ -1,10 +1,5 @@
-	git clone --recursive git@github.com:majidaldo/ansible-vagrant.git
-	
-to start a new automation based off these files
-
-        git checkout template
-        git checkout master $(cat files.txt)
-
+# Ansible Collection - jclaveau.vagrant
+[![Integration Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml/badge.svg)](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml)
 
 ===============
 A vagrant module for ansible that lets you control vagrant VMs from an ansible playbook.
@@ -35,8 +30,8 @@ Forked from https://github.com/robparrott/ansible-vagrant
 The following documentation is a lightly revised version of original.
 
 ## Overview
-Ansible-vagrant is a module for [ansible](http://ansible.cc) that allows you to create VMs on your local system using [Vagrant](http://vagrantup.com/). 
-This allows you to write ansible [playbooks](http://ansible.github.com/playbooks.html) that dynamically create local guests and configure them via the ansible playbook(s). 
+Ansible-vagrant is a module for [ansible](http://ansible.cc) that allows you to create VMs on your local system using [Vagrant](http://vagrantup.com/).
+This allows you to write ansible [playbooks](http://ansible.github.com/playbooks.html) that dynamically create local guests and configure them via the ansible playbook(s).
 By allowing you to run guests on your local system, this module facilitates testing and development of orchestrated, distributed applications via ansible.
 
 Ansible-vagrant should not be confused with [vagrant-ansible](https://github.com/dsander/vagrant-ansible) which allows you to run ansible playbooks on vagrant-launched hosts.
@@ -45,7 +40,7 @@ Ansible-vagrant should not be confused with [vagrant-ansible](https://github.com
 
 The vagrant module for ansible requires:
 
- * a working [Vagrant](http://vagrantup.com/) install, which will itself 
+ * a working [Vagrant](http://vagrantup.com/) install, which will itself
    require [VirtualBox](https://www.virtualbox.org/wiki/Downloads).
  * that the [vagrant-python](https://github.com/todddeluca/python-vagrant) is installed and in your python path
 
@@ -54,7 +49,7 @@ To install, couple the file "vagrant" to your ansible isntallation, under the ".
 To run the tests from the repository, cd into "./test" and run
 
     ansible-playbook -v -i hosts vagrant-test.yaml
-    
+
 ## Getting started with ansible-vagrant
 
 ### Command Line Use
@@ -65,16 +60,16 @@ The following is a simple example, and assumes a linux or unix shell prompt.
 First create a simple host inventory file for ansible that only includes your local machine:
 
     echo "127.0.0.1" > hosts
-    
+
 The target machine image is called a "box" under vagrant, and can be managed ahead of time using a vagrant command:
 
-    vagrant box add lucid64 http://files.vagrantup.com/lucid64.box 
+    vagrant box add lucid64 http://files.vagrantup.com/lucid64.box
 
-or instead the path can be specified when you start the VM itself. We'll start up a standard VM with ansible-vagrant as follows: 
+or instead the path can be specified when you start the VM itself. We'll start up a standard VM with ansible-vagrant as follows:
 
     ansible all -i hosts -c local -m vagrant -a "state=up vm_name=myvm box_name=lucid64 box_path=http://files.vagrantup.com/lucid64.box"
-    
-This command will download and register the image as "lucid64," then start up the image and attribute 
+
+This command will download and register the image as "lucid64," then start up the image and attribute
 the name "myvm" to it. If you had left off the "vm_name" argument, the module will set the vm_name to "ansible" for you.
 
 The command is idempotent, so if the instances are currently running (and you haven't removed any auto-generated state files such as "Vagrantfile.json") then this command will not try to start already running instances.
@@ -82,9 +77,9 @@ The command is idempotent, so if the instances are currently running (and you ha
 A more "command" equivalent would be:
 
     ansible all -i hosts -c local -m vagrant -a "command=up vm_name=myvm box_name=lucid64 box_path=http://files.vagrantup.com/lucid64.box"
-    
-Note: names in vagrant have to be compatible with the ruby syntax used in Vagrantfiles, 
-so they can't use "-" or "_", and must start with a lowercase letter. *In the future, you can leave 
+
+Note: names in vagrant have to be compatible with the ruby syntax used in Vagrantfiles,
+so they can't use "-" or "_", and must start with a lowercase letter. *In the future, you can leave
 off the "box_path" argument, as vagrant registers and caches the image locally.
 
 Once up, you can log into the image via the usual vagrant command:
@@ -103,43 +98,43 @@ Get its configuration (in particular ssh config values) via the config subcomman
 
 Then you can halt the machine when you're done:
 
-    ansible all -i hosts -c local -m vagrant -a "cmd=halt vm_name=myvm"  
+    ansible all -i hosts -c local -m vagrant -a "cmd=halt vm_name=myvm"
 
 and remove its record:
 
-    ansible all -i hosts -c local -m vagrant -a "cmd=destroy vm_name=myvm"  
+    ansible all -i hosts -c local -m vagrant -a "cmd=destroy vm_name=myvm"
 
 This last command will halt and then remove the record if the machine had been running.
 
 Lastly, we can shutdown and clear out all records with the "clear" subcommand:
 
     ansible all -i hosts -c local -m vagrant -a "cmd=clear"
-    
+
 Most correctly, we can insist that the state of the instances is "absent":
 
-    ansible all -i hosts -c local -m vagrant -a "state=halt vm_name=myvm"      
+    ansible all -i hosts -c local -m vagrant -a "state=halt vm_name=myvm"
 
 ### Playbooks
-         
-Playbooks allow you to start up instances in vagrant dynamically, 
-add them to the inventory and then run "plays" on those newly created instances 
-from a single command. 
 
-Note: when playing around with builds using vagrant, it's useful to clear out your Vagrantfile 
+Playbooks allow you to start up instances in vagrant dynamically,
+add them to the inventory and then run "plays" on those newly created instances
+from a single command.
+
+Note: when playing around with builds using vagrant, it's useful to clear out your Vagrantfile
 and VMs before running a playbook. The following is the equivalent of a "make clean" :
 
     ansible all -i hosts -c local -m vagrant -a "cmd=clear"
-    
+
 (It's kinda fun to watch the VirtualBox manager window, and see the instances shutdown and disappear like good little VMs :-> )
-    
+
 Here's an example playbook:
 
-    --- 
+    ---
     #
     # This section fires up a set of instances dynamically using vagrant,
-    #  registers it in the inventory under 
+    #  registers it in the inventory under
     #  the group "vagrant_hosts"
-    # then logs in and pokes around. 
+    # then logs in and pokes around.
     #
     - hosts:
       - localhost
@@ -160,61 +155,61 @@ Here's an example playbook:
             vm_name=${vm_name}
             count=3
         register: vagrant
-      
+
       - name: Remind us about the vagrant private key ...
-        action: debug 
+        action: debug
                 msg="Be sure to add the ssh private key for vagrant, here ... '${vagrant.instances[0].key}'."
-  
+
       - name: Host info ...
        action: debug
-                msg='${item.public_ip}${item.port}' 
+                msg='${item.public_ip}${item.port}'
         with_items: ${vagrant.instances}
-      
+
       - name: Capture that host's contact info into the inventory (the hostname is a unique ID from Vagrant ... )
-        action: add_host 
-                hostname='${item.vagrant_name}' 
-                ansible_ssh_port='${item.port}' 
+        action: add_host
+                hostname='${item.vagrant_name}'
+                ansible_ssh_port='${item.port}'
                 ansible_ssh_host='${item.public_ip}'
                 groupname=vagrant_hosts
         with_items: ${vagrant.instances}
-    
+
     #
     # Run on the vagrant_hosts group, checking that we have basic ssh access...
-    #    
+    #
     - hosts:
       - vagrant_hosts
       user: vagrant
       vars:
         vm_name: frank
-  
+
       gather_facts: True
-               
+
       tasks:
-  
+
       - name: Let's see if we can login
         action: command uname -a
-    
+
       - name: Let's see all the ansible vars about vagrant hosts...
         action: setup
-  
+
       - name: Generate a ./blah_ansible.vars to check for hostvars
         action: template src=test-vagrant-hostinfo.j2 dest=/tmp/localhost_ansible.vars
-    
-    #    
-    # Shut them down 
+
+    #
+    # Shut them down
     #
       - name: Now shut them down ...
-        local_action: vagrant 
+        local_action: vagrant
                       state=halt
                       vm_name='${vm_name}'
-                  
+
       - name: Now clear it out ...
         local_action: vagrant clear
-    
-      
-## Methods and Data Structures      
 
-Here, let's talk about the data returned by the various commands. 
+
+## Methods and Data Structures
+
+Here, let's talk about the data returned by the various commands.
 
 These data structures take into account that there may be multiple named sets of instances, and multiple instances within each "up invocation"
 
@@ -223,35 +218,35 @@ These data structures take into account that there may be multiple named sets of
 The up subcommand
 
     ansible -m vagrant -a "command=up box_name=lucid32 vm_name=fred count=2
-  
+
 asks vagrant to start up two identical instances of the "lucid32" box, and name then "fred." When successful produces output of this type:
 
     {
-      "changed": true, 
+      "changed": true,
       "instances": [
         {
-          "id": "fred0", 
-          "internal_ip": "192.168.179.253", 
-          "key": "/Users/username/.vagrant.d/insecure_private_key", 
-          "name": "fred", 
-          "port": "2200", 
-          "public_dns_name": "127.0.0.1", 
-          "public_ip": "127.0.0.1", 
-          "status": "running", 
-          "username": "vagrant", 
+          "id": "fred0",
+          "internal_ip": "192.168.179.253",
+          "key": "/Users/username/.vagrant.d/insecure_private_key",
+          "name": "fred",
+          "port": "2200",
+          "public_dns_name": "127.0.0.1",
+          "public_ip": "127.0.0.1",
+          "status": "running",
+          "username": "vagrant",
           "vagrant_name": "fred0"
-        }, 
+        },
         {
-          "id": "fred1", 
-          "internal_ip": "192.168.179.252", 
-          "key": "/Users/username/.vagrant.d/insecure_private_key", 
-          "name": "fred", 
-          "port": "2201", 
-          "public_dns_name": 
-          "127.0.0.1", 
-          "public_ip": "127.0.0.1", 
-          "status": "running", 
-          "username": "vagrant", 
+          "id": "fred1",
+          "internal_ip": "192.168.179.252",
+          "key": "/Users/username/.vagrant.d/insecure_private_key",
+          "name": "fred",
+          "port": "2201",
+          "public_dns_name":
+          "127.0.0.1",
+          "public_ip": "127.0.0.1",
+          "status": "running",
+          "username": "vagrant",
           "vagrant_name": "fred1"
         }
       ]
@@ -266,10 +261,10 @@ Subcommand invocation
 reports back with a dictionary of vm_names (only one in the case) with an array of status strings:
 
     {
-      "changed": false, 
+      "changed": false,
       "status": {
         "fred": [
-           "running", 
+           "running",
            "running"
          ]
        }
@@ -278,9 +273,9 @@ reports back with a dictionary of vm_names (only one in the case) with an array 
 if we don't specify a vm_name, we get the status of all instances:
 
     {
-      "changed": false, 
+      "changed": false,
       "status": {
-        "ansible": ["running"], 
+        "ansible": ["running"],
         "fred": ["running", "running"]
       }
     }
@@ -294,29 +289,29 @@ Subcommand invocation for config data is similar ot status, but with much values
 reports back with a dictionary of vm_names (only one in the case) with an array of dicts about the SSH configuration of the hosts:
 
     {
-     "changed": false, 
+     "changed": false,
      "config": {
        "fred": [
          {
-           "Host": "fred0", 
-           "HostName": "127.0.0.1", 
-           "IdentitiesOnly": "yes", 
-           "IdentityFile": "/Users/username/.vagrant.d/insecure_private_key", 
-           "PasswordAuthentication": "no", 
-           "Port": "2200", 
-           "StrictHostKeyChecking": "no", 
-           "User": "vagrant", 
+           "Host": "fred0",
+           "HostName": "127.0.0.1",
+           "IdentitiesOnly": "yes",
+           "IdentityFile": "/Users/username/.vagrant.d/insecure_private_key",
+           "PasswordAuthentication": "no",
+           "Port": "2200",
+           "StrictHostKeyChecking": "no",
+           "User": "vagrant",
            "UserKnownHostsFile": "/dev/null"
-         }, 
+         },
          {
-           "Host": "fred1", 
-           "HostName": "127.0.0.1", 
-           "IdentitiesOnly": "yes", 
-           "IdentityFile": "/Users/username/.vagrant.d/insecure_private_key", 
-           "PasswordAuthentication": "no", 
-           "Port": "2201", 
-           "StrictHostKeyChecking": "no", 
-           "User": "vagrant", 
+           "Host": "fred1",
+           "HostName": "127.0.0.1",
+           "IdentitiesOnly": "yes",
+           "IdentityFile": "/Users/username/.vagrant.d/insecure_private_key",
+           "PasswordAuthentication": "no",
+           "Port": "2201",
+           "StrictHostKeyChecking": "no",
+           "User": "vagrant",
            "UserKnownHostsFile": "/dev/null"
          }
        ]
@@ -325,22 +320,22 @@ reports back with a dictionary of vm_names (only one in the case) with an array 
 
 ### Halt
 
-When halting an instance, ort set of isntances, as in 
+When halting an instance, ort set of isntances, as in
 
     ansible -m vagrant -a "command=halt vm_name=fred"
-    
+
 report back the resulting status
 
     {
-      "changed": true, 
+      "changed": true,
       "status": {
         "fred": [
-           "poweroff", 
+           "poweroff",
            "poweroff"
          ]
        }
     }
-    
+
 
 
 
