@@ -1,0 +1,72 @@
+---
+# This section fires up a set of guests dynamically using vagrant,
+# logs in and destroy them
+
+- name: Fire up 2 vagrant instances to log into
+  jclaveau.vagrant.vagrant:
+  args:
+    command: up
+    box_name: "{{box_name}}"
+    box_path: "{{box_path_virtualbox}}"
+    vm_name: "frank"
+    count: 2
+    config_code: |
+      config.vm.provider "virtualbox" do |vb|
+      vb.memory = 256
+      end
+    log: true
+  register: vagrant
+
+- name: SSH connection to them
+  shell: >
+    ssh vagrant@{{item.public_ip}}
+    -p {{item.port}}
+    -i {{item.key}}
+    -o StrictHostKeyChecking=no
+    -o NoHostAuthenticationForLocalhost=yes
+    -o IdentitiesOnly=yes
+    -o ConnectTimeout=5
+    hostname
+  loop: '{{vagrant.instances}}'
+  register: ssh_results
+
+# - name: dbg ssh results
+#   ansible.builtin.debug:
+#     msg: "{{ ssh_results }}"
+
+- assert:
+    that:
+      - ssh_results is success
+      - ssh_results is changed
+      - ssh_results.results[0].stdout == ssh_results.results[0].item.hostname
+      - ssh_results.results[1].stdout == ssh_results.results[1].item.hostname
+
+- name: Destroy vms and delete config files
+  local_action:
+    module: vagrant
+    command: clear
+
+- name: Failing SSH connection to them
+  shell: >
+    ssh vagrant@{{item.public_ip}}
+    -p {{item.port}}
+    -i {{item.key}}
+    -o StrictHostKeyChecking=no
+    -o NoHostAuthenticationForLocalhost=yes
+    -o IdentitiesOnly=yes
+    -o ConnectTimeout=5
+    hostname
+  loop: '{{vagrant.instances}}'
+  register: ssh_results
+  ignore_errors: yes
+
+# - name: dbg failing ssh results
+#   ansible.builtin.debug:
+#     msg: "{{ ssh_results }}"
+
+- assert:
+    that:
+      - ssh_results is failed
+      - ssh_results is changed
+      - "'Connection refused' in ssh_results.results[0].stderr"
+      - "'Connection refused' in ssh_results.results[0].stderr"
