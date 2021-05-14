@@ -19,6 +19,16 @@
   tags:
     - always
 
+# vagrant ssh_command
+- include_tasks:
+    file: vagrant_ssh_command_test.yml
+    apply:
+      tags:
+        - ssh_command
+  tags:
+    - always
+
+# SSH connection
 - name: SSH connection to them
   shell: >
     ssh vagrant@{{item.public_ip}}

@@ -34,7 +34,7 @@ options:
   cmd:
     description:
       - vagrant subcommand to execute. Can be "up," "status," "config,"
-        "ssh," "halt," "destroy" or "clear."
+        "ssh_command," "halt," "destroy" or "clear."
     type: str
     required: false
     default: null
@@ -690,14 +690,22 @@ def main():
                 (changd, cnf) = vgw.config(vm_name)
                 module.exit_json(changed=changd, config=cnf)
 
-            elif cmd == 'ssh':
+            elif cmd == 'ssh_command':
                 if vm_name is None:
-                    module.fail_json(msg="Error: you must specify a vm_name when calling ssh.")
+                    module.fail_json(msg="Error: you must specify a vm_name when calling ssh_command.")
 
                 (changd, cnf) = vgw.config(vm_name)
-                sshcmd = "ssh -i %s -p %s %s@%s" % (cnf["IdentityFile"], cnf["Port"], cnf["User"], cnf["HostName"])
-                sshmsg = "Execute the command \"vagrant ssh %s\"" % (vm_name)
-                module.exit_json(changed=changd, msg=sshmsg, SshCommand=sshcmd)
+                sshcmd = ("ssh %s@%s -p %s -i %s "
+                          "-o StrictHostKeyChecking=no "
+                          "-o NoHostAuthenticationForLocalhost=yes "
+                          "-o IdentitiesOnly=yes"
+                          ) % (
+                              cnf[vm_name][0]["User"],
+                              cnf[vm_name][0]["HostName"],
+                              cnf[vm_name][0]["Port"],
+                              cnf[vm_name][0]["IdentityFile"])
+                sshmsg = "To connect to %s, execute in your shell the given command" % (vm_name)
+                module.exit_json(changed=changd, msg=sshmsg, ssh_command=sshcmd)
 
 #            elif cmd == "load_key":
 #                if vm_name is None:

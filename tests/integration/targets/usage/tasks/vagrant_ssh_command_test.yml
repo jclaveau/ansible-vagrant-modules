@@ -1,0 +1,40 @@
+# Dumps the shell command to connect to the given VM
+- name: Run "vagrant ssh_command"
+  local_action:
+    module: vagrant
+    command: ssh_command
+    vm_name: frank
+    log: true
+  register: vagrant_ssh_command_result
+
+# - name: dbg vagrant_ssh_command_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_up_frank_results.instances }}"
+
+# - name: dbg vagrant_ssh_command_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_ssh_command_result }}"
+
+- name: Vagrant ssh_command should succeed
+  assert:
+    that:
+      - vagrant_ssh_command_result is success
+      - vagrant_ssh_command_result is not changed
+      - vagrant_ssh_command_result.msg == "To connect to {{ vagrant_up_frank_results.instances[0].vagrant_name }}, execute in your shell the given command"
+      - vagrant_ssh_command_result.ssh_command == "ssh vagrant@127.0.0.1 -p {{ vagrant_up_frank_results.instances[0].port }} -i {{ vagrant_up_frank_results.instances[0].key }} -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o IdentitiesOnly=yes"
+
+# without specified vm name
+- name: Call ssh_command
+  local_action:
+    module: vagrant
+    command: ssh_command
+    log: true
+  register: vagrant_ssh_command_result
+  ignore_errors: true
+
+- name: ssh_command should fail
+  assert:
+    that:
+      - vagrant_ssh_command_result is failed
+      - vagrant_ssh_command_result is not changed
+      - vagrant_ssh_command_result.msg = "Error: you must specify a vm_name when calling config."
