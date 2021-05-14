@@ -1,4 +1,3 @@
-
 - name: SSH connection to them
   shell: >
     ssh vagrant@{{item.public_ip}}
