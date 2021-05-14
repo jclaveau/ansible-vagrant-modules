@@ -1,0 +1,17 @@
+
+- name: SSH connection to them
+  shell: >
+    ssh vagrant@{{item.public_ip}}
+    -p {{item.port}}
+    -i {{item.key}}
+    -o StrictHostKeyChecking=no
+    -o NoHostAuthenticationForLocalhost=yes
+    -o IdentitiesOnly=yes
+    -o ConnectTimeout=5
+    hostname
+  loop: '{{vagrant.instances}}'
+  register: ssh_results
+
+# - name: dbg ssh results
+#   ansible.builtin.debug:
+#     msg: "{{ ssh_results }}"

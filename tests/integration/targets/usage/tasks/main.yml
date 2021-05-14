@@ -17,54 +17,27 @@
     log: true
   register: vagrant
 
-- name: SSH connection to them
-  shell: >
-    ssh vagrant@{{item.public_ip}}
-    -p {{item.port}}
-    -i {{item.key}}
-    -o StrictHostKeyChecking=no
-    -o NoHostAuthenticationForLocalhost=yes
-    -o IdentitiesOnly=yes
-    -o ConnectTimeout=5
-    hostname
-  loop: '{{vagrant.instances}}'
-  register: ssh_results
+# Simple SSH connection
+- include_tasks: shell_ssh_connection_printing_hostname.yml
 
-# - name: dbg ssh results
-#   ansible.builtin.debug:
-#     msg: "{{ ssh_results }}"
-
-- assert:
+- name: SSH connection should succeed
+  assert:
     that:
       - ssh_results is success
       - ssh_results is changed
       - ssh_results.results[0].stdout == ssh_results.results[0].item.hostname
       - ssh_results.results[1].stdout == ssh_results.results[1].item.hostname
 
+# vagrant clear (destroy all vms and remove config files)
 - name: Destroy vms and delete config files
   local_action:
     module: vagrant
     command: clear
 
-- name: Failing SSH connection to them
-  shell: >
-    ssh vagrant@{{item.public_ip}}
-    -p {{item.port}}
-    -i {{item.key}}
-    -o StrictHostKeyChecking=no
-    -o NoHostAuthenticationForLocalhost=yes
-    -o IdentitiesOnly=yes
-    -o ConnectTimeout=5
-    hostname
-  loop: '{{vagrant.instances}}'
-  register: ssh_results
-  ignore_errors: yes
+- include_tasks: shell_ssh_connection_printing_hostname.yml
 
-# - name: dbg failing ssh results
-#   ansible.builtin.debug:
-#     msg: "{{ ssh_results }}"
-
-- assert:
+- name: SSH connection should fail
+  assert:
     that:
       - ssh_results is failed
       - ssh_results is changed
