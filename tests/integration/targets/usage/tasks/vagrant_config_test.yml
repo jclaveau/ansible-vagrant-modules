@@ -1,0 +1,57 @@
+# Equivalent of "vagrant ssh-config" command
+- name: Retrieve vagrant status of instances named frank or frank_instX
+  local_action:
+    module: vagrant
+    command: config
+    vm_name: frank
+    log: true
+  register: vagrant_config_result
+
+# - name: dbg vagrant_config_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_config_result }}"
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_result is success
+      - vagrant_config_result is not changed
+      - vagrant_config_result.config | count == 1
+      - vagrant_config_result.config.frank | count == vagrant_up_frank_results.instances | count
+
+# - name: dbg vagrant_config_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_up_frank_results }}"
+
+- name: Vagrant config should contain
+  assert:
+    that:
+      - vagrant_config_result.config.frank[i].Host == "{{ item.vagrant_name }}"
+      - vagrant_config_result.config.frank[i].HostName == "127.0.0.1"
+      - vagrant_config_result.config.frank[i].IdentitiesOnly == "yes"
+      - vagrant_config_result.config.frank[i].IdentityFile == "{{ item.key }}"
+      - vagrant_config_result.config.frank[i].LogLevel == "FATAL"
+      - vagrant_config_result.config.frank[i].PasswordAuthentication == "no"
+      - vagrant_config_result.config.frank[i].Port == "{{ item.port }}"
+      - vagrant_config_result.config.frank[i].StrictHostKeyChecking == "no"
+      - vagrant_config_result.config.frank[i].User == "vagrant"
+      - vagrant_config_result.config.frank[i].UserKnownHostsFile == "/dev/null"
+  loop: '{{vagrant_up_frank_results.instances}}'
+  loop_control:
+    index_var: i
+
+# without specified vm name
+- name: Retrieve vagrant status with no instance name
+  local_action:
+    module: vagrant
+    command: config
+    log: true
+  register: vagrant_config_result
+  ignore_errors: true
+
+- name: Vagrant config should fail
+  assert:
+    that:
+      - vagrant_config_result is failed
+      - vagrant_config_result is not changed
+      - vagrant_config_result.msg = "Error: you must specify a vm_name when calling config."

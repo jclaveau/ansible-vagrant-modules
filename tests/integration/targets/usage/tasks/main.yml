@@ -15,7 +15,9 @@
       vb.memory = 256
       end
     log: true
-  register: vagrant
+  register: vagrant_up_frank_results
+  tags:
+    - always
 
 - name: SSH connection to them
   shell: >
@@ -27,7 +29,7 @@
     -o IdentitiesOnly=yes
     -o ConnectTimeout=5
     hostname
-  loop: '{{vagrant.instances}}'
+  loop: '{{vagrant_up_frank_results.instances}}'
   register: ssh_results
 
 # - name: dbg ssh results
@@ -51,9 +53,24 @@
     box_path: "{{box_path_virtualbox}}"
     vm_name: "fred"
     log: true
-  register: vagrant
+  register: vagrant_up_fred_results
 
-- include_tasks: vagrant_status_test.yml
+- include_tasks:
+    file: vagrant_status_test.yml
+    apply:
+      tags:
+        - status
+  tags:
+    - always
+
+# vagrant config
+- include_tasks:
+    file: vagrant_config_test.yml
+    apply:
+      tags:
+        - config
+  tags:
+    - always
 
 # vagrant clear (destroy all vms and remove config files)
 - name: Destroy vms and delete config files
@@ -71,7 +88,7 @@
     -o IdentitiesOnly=yes
     -o ConnectTimeout=5
     hostname
-  loop: '{{vagrant.instances}}'
+  loop: '{{vagrant_up_frank_results.instances}}'
   register: ssh_results
   ignore_errors: yes
 
