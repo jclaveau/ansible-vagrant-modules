@@ -28,6 +28,19 @@
       - ssh_results.results[0].stdout == ssh_results.results[0].item.hostname
       - ssh_results.results[1].stdout == ssh_results.results[1].item.hostname
 
+# vagrant status
+- name: Fire up a new VM called fred
+  jclaveau.vagrant.vagrant:
+  args:
+    command: up
+    box_name: "{{box_name}}"
+    box_path: "{{box_path_virtualbox}}"
+    vm_name: "fred"
+    log: true
+  register: vagrant
+
+- include_tasks: vagrant_status_test.yml
+
 # vagrant clear (destroy all vms and remove config files)
 - name: Destroy vms and delete config files
   local_action:

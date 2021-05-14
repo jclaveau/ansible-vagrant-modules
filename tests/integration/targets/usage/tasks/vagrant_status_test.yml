@@ -1,0 +1,75 @@
+# Equivalent of "vagrant status" command
+- name: Retrieve vagrant status of instances named frank or frank_instX
+  local_action:
+    module: vagrant
+    command: status
+    vm_name: frank
+    log: true
+  register: vagrant_status_result
+
+# - name: dbg vagrant_status_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_status_result }}"
+
+- name: Vagrant status should succeed
+  assert:
+    that:
+      - vagrant_status_result is success
+      - vagrant_status_result is not changed
+      - vagrant_status_result.status | count == 1
+      - vagrant_status_result.status.frank | count == 2
+      - vagrant_status_result.status.frank[0][0][0] == "frank"
+      - vagrant_status_result.status.frank[0][0][1] == "running"
+      - vagrant_status_result.status.frank[0][0][2] == "virtualbox"
+      - vagrant_status_result.status.frank[1][0][0] == "frank_inst2"
+      - vagrant_status_result.status.frank[1][0][1] == "running"
+      - vagrant_status_result.status.frank[1][0][2] == "virtualbox"
+
+- name: Retrieve vagrant status of instances named frank or frank_instX
+  local_action:
+    module: vagrant
+    command: status
+    log: true
+  register: vagrant_status_result
+
+# - name: dbg vagrant_status_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_status_result }}"
+
+- name: Vagrant status should succeed
+  assert:
+    that:
+      - vagrant_status_result is success
+      - vagrant_status_result is not changed
+      - vagrant_status_result.status | count == 2
+      - vagrant_status_result.status.frank | count == 2
+      - vagrant_status_result.status.frank[0][0][0] == "frank"
+      - vagrant_status_result.status.frank[0][0][0] == "frank"
+      - vagrant_status_result.status.frank[0][0][1] == "running"
+      - vagrant_status_result.status.frank[0][0][2] == "virtualbox"
+      - vagrant_status_result.status.frank[1][0][0] == "frank_inst2"
+      - vagrant_status_result.status.frank[1][0][1] == "running"
+      - vagrant_status_result.status.frank[1][0][2] == "virtualbox"
+      - vagrant_status_result.status.fred | count == 1
+      - vagrant_status_result.status.fred[0][0][0] == "fred"
+      - vagrant_status_result.status.fred[0][0][1] == "running"
+      - vagrant_status_result.status.fred[0][0][2] == "virtualbox"
+
+# This is failing: https://github.com/jclaveau/ansible-vagrant-module/issues/15
+
+# - name: Retrieve vagrant status of instances named "non_existing_vm"
+#   local_action:
+#     module: vagrant
+#     command: status
+#     vm_name: non_existing_vm
+#     log: true
+#   register: vagrant_status_result
+
+# - name: dbg vagrant_status_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_status_result }}"
+
+# - name: Vagrant status should be empty
+#   assert:
+#     that:
+#       - vagrant_status_result is success
