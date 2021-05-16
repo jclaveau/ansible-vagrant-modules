@@ -64,6 +64,8 @@
     vm_name: "fred"
     log: true
   register: vagrant_up_fred_results
+  tags:
+    - always
 
 - include_tasks:
     file: vagrant_status_test.yml
@@ -79,6 +81,15 @@
     apply:
       tags:
         - config
+  tags:
+    - always
+
+# vagrant halt
+- include_tasks:
+    file: vagrant_halt_test.yml
+    apply:
+      tags:
+        - halt
   tags:
     - always
 

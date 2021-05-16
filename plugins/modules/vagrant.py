@@ -381,7 +381,7 @@ class VagrantWrapper(object):
                 instance_array = [self.vg_data['instances'][vmn][n]]
             for inst in instance_array:
                 vgn = inst['vagrant_name']
-                if self.vg.status(vgn) == 'running':
+                if self.vg.status(vgn)[0].state == 'running':
                     self.vg.halt(vgn)
                     changed = True
                 stat_array.append(self.vg.status(vgn))

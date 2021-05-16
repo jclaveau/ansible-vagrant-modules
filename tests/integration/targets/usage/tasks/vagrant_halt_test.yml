@@ -1,0 +1,56 @@
+# Equivalent of "vagrant halt" command
+- name: Retrieve vagrant status of instances named frank or frank_instX
+  local_action:
+    module: vagrant
+    command: halt
+    vm_name: frank
+    log: true
+  register: vagrant_halt_result
+
+# - name: dbg vagrant_halt_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_halt_result }}"
+
+- name: Vagrant halt should succeed
+  assert:
+    that:
+      - vagrant_halt_result is success
+      - vagrant_halt_result is changed
+      - vagrant_halt_result.status | count == 1
+      - vagrant_halt_result.status.frank | count == 2
+      - vagrant_halt_result.status.frank[0][0][0] == "frank"
+      - vagrant_halt_result.status.frank[0][0][1] == "poweroff"
+      - vagrant_halt_result.status.frank[0][0][2] == "virtualbox"
+      - vagrant_halt_result.status.frank[1][0][0] == "frank_inst2"
+      - vagrant_halt_result.status.frank[1][0][1] == "poweroff"
+      - vagrant_halt_result.status.frank[1][0][2] == "virtualbox"
+
+# without specified vm name
+- name: Call halt without vm_name
+  local_action:
+    module: vagrant
+    command: halt
+    log: true
+  register: vagrant_halt_result
+
+# - name: dbg vagrant_halt_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_halt_result }}"
+
+- name: Vagrant halt should succeed
+  assert:
+    that:
+      - vagrant_halt_result is success
+      - vagrant_halt_result is changed
+      - vagrant_halt_result.status | count == 2
+      - vagrant_halt_result.status.frank | count == 2
+      - vagrant_halt_result.status.frank[0][0][0] == "frank"
+      - vagrant_halt_result.status.frank[0][0][1] == "poweroff"
+      - vagrant_halt_result.status.frank[0][0][2] == "virtualbox"
+      - vagrant_halt_result.status.frank[1][0][0] == "frank_inst2"
+      - vagrant_halt_result.status.frank[1][0][1] == "poweroff"
+      - vagrant_halt_result.status.frank[1][0][2] == "virtualbox"
+      - vagrant_halt_result.status.fred | count == 1
+      - vagrant_halt_result.status.fred[0][0][0] == "fred"
+      - vagrant_halt_result.status.fred[0][0][1] == "poweroff"
+      - vagrant_halt_result.status.fred[0][0][2] == "virtualbox"
