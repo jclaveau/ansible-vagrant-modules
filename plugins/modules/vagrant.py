@@ -391,24 +391,35 @@ class VagrantWrapper(object):
 
     def destroy(self, vm_name=None, n=-1):
         """
-        Halt and remove data for a VM, or all VMs.
+        Destroy a VM, or all VMs.
         """
-
-        self._deserialize()
-
-        (changed, stats) = self.halt(vm_name, n)
-
-        self.vg.destroy(vm_name)
+        changed = False
+        vm_names = []
         if vm_name is not None:
-            self._instances().pop(vm_name)
+            if vm_name not in self._instances():
+                self.module.fail_json(msg="failed=True msg='VM to destroy cannot be found: %s'" % vm_name)
+            vm_names = [vm_name]
         else:
-            self.vg_data['instances'] = {}
+            vm_names = list(self._instances().keys())
 
-        self._serialize()
+        statuses = {}
+        for vmn in vm_names:
+            stat_array = []
+            instance_array = self.vg_data['instances'][vmn]
+            if n > 1:
+                if len(self.vg_data['instances'][vmn]) < n:
+                    self.module.fail_json(msg="failed=True msg='VM to destroy cannot be found: %s_inst%d'" % (vmn, n))
+                instance_array = [self.vg_data['instances'][vmn][n - 1]]
+            for inst in instance_array:
+                vgn = inst['vagrant_name']
+                if self.vg.status(vgn)[0].state != 'not_created':
+                    self.vg.destroy(vgn)
+                    self.vg.halt(vgn)
+                    changed = True
+                stat_array.append(self.vg.status(vgn))
+            statuses[vmn] = stat_array
 
-        changed = True
-
-        return changed
+        return (changed, statuses)
 
     def clear(self, vm_name=None):
         """
@@ -727,8 +738,8 @@ def main():
                 module.exit_json(changed=changd, status=stats)
 
             elif cmd == 'destroy':
-                changd = vgw.destroy(vm_name)
-                module.exit_json(changed=changd, status=vgw.status(vm_name))
+                (changd, stats) = vgw.destroy(vm_name, count)
+                module.exit_json(changed=changd, status=stats)
 
             elif cmd == 'clear':
                 changd = vgw.clear()

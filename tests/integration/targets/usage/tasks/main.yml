@@ -93,6 +93,15 @@
   tags:
     - always
 
+# vagrant destroy
+- include_tasks:
+    file: vagrant_destroy_test.yml
+    apply:
+      tags:
+        - destroy
+  tags:
+    - always
+
 # vagrant clear (destroy all vms and remove config files)
 - name: Destroy vms and delete config files
   local_action:
