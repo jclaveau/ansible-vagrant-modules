@@ -39,6 +39,9 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-vagrant-
 
+      - name: Run the integration test in a playbook
+        run: /Users/runner/work/ansible-vagrant-module/ansible-vagrant-module/ansible_collections/jclaveau/vagrant/tests/integration_playbook/tests.sh
+
       - name: Run the integration tests
         run: ansible-test integration --python 3.8 --coverage --no-temp-workdir
 
