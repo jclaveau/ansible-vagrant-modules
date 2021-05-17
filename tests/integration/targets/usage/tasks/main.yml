@@ -103,10 +103,13 @@
     - always
 
 # vagrant clear (destroy all vms and remove config files)
-- name: Destroy vms and delete config files
-  local_action:
-    module: vagrant
-    command: clear
+- include_tasks:
+    file: vagrant_clear_test.yml
+    apply:
+      tags:
+        - clear
+  tags:
+    - always
 
 - name: Failing SSH connection to them
   shell: >

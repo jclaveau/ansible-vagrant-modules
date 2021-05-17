@@ -1,0 +1,29 @@
+# Equivalent of "vagrant clear" command
+- name: Destroy vms and delete config files
+  local_action:
+    module: vagrant
+    command: clear
+    log: true
+  register: vagrant_clear_result
+
+# - name: dbg vagrant_clear_result
+#   ansible.builtin.debug:
+#     msg: "{{ vagrant_clear_result }}"
+
+- name: Vagrant clear should succeed
+  assert:
+    that:
+      - vagrant_clear_result is success
+      - vagrant_clear_result is changed
+      - vagrant_clear_result.status | count == 2
+      - vagrant_clear_result.status.frank | count == 2
+      - vagrant_clear_result.status.frank[0][0][0] == "frank"
+      - vagrant_clear_result.status.frank[0][0][1] == "not_created"
+      - vagrant_clear_result.status.frank[0][0][2] == "virtualbox"
+      - vagrant_clear_result.status.frank[1][0][0] == "frank_inst2"
+      - vagrant_clear_result.status.frank[1][0][1] == "not_created"
+      - vagrant_clear_result.status.frank[1][0][2] == "virtualbox"
+      - vagrant_clear_result.status.fred | count == 1
+      - vagrant_clear_result.status.fred[0][0][0] == "fred"
+      - vagrant_clear_result.status.fred[0][0][1] == "not_created"
+      - vagrant_clear_result.status.fred[0][0][2] == "virtualbox"

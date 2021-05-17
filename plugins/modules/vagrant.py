@@ -421,17 +421,18 @@ class VagrantWrapper(object):
 
         return (changed, statuses)
 
-    def clear(self, vm_name=None):
+    def clear(self):
         """
-        Halt and remove data for a VM, or all VMs. Also clear all state data
+        Destroy all VMs and clear all state data and configuration files
         """
-        changed = self.vg.destroy(vm_name)
+        (changed, statuses) = self.destroy()
 
         for af in [VAGRANT_FILE, VAGRANT_DICT_FILE, VAGRANT_LOGFILE]:
             if os.path.isfile(af):
+                changed = True
                 os.remove(af)
 
-        return changed
+        return (changed, statuses)
 
 #
 # Helper Methods
@@ -742,8 +743,8 @@ def main():
                 module.exit_json(changed=changd, status=stats)
 
             elif cmd == 'clear':
-                changd = vgw.clear()
-                module.exit_json(changed=changd)
+                (changd, stats) = vgw.clear()
+                module.exit_json(changed=changd, status=stats)
 
             else:
                 module.fail_json(msg="Unknown vagrant subcommand: \"%s\"." % (cmd))
