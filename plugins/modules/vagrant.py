@@ -665,22 +665,21 @@ def main():
     #
     try:
         if state is not None:
+            possible_states = ['running', 'poweroff', 'not_created']
+            if state not in possible_states:
+                module.fail_json(msg="State must be one of [%s] instead of '%s'" % (", ".join(possible_states), state))
 
-            if state != 'halt' and state != 'up':
-                module.fail_json(msg="State must be \"halt\" or \"up\" in vagrant module.")
-
-            if state == 'up':
+            if state == 'running':
                 changd, insts = vgw.up(box_name, vm_name, count, box_path, forward_ports)
                 module.exit_json(changed=changd, instances=insts)
 
-            if state == 'halt':
-                changd = vgw.halt(vm_name)
-                module.exit_json(changed=changd, status=vgw.status(vm_name))
+            if state == 'poweroff':
+                (changd, stats) = vgw.halt(vm_name)
+                module.exit_json(changed=changd, status=stats)
 
-        #
-        # Main command tree for old style invocation
-        #
-
+            if state == 'not_created':
+                (changd, stats) = vgw.destroy(vm_name, count)
+                module.exit_json(changed=changd, status=stats)
         else:
             if cmd == 'up':
                 # print "I am running cmd up"
