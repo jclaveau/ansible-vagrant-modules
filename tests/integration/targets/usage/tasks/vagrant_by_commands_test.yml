@@ -77,10 +77,10 @@
 
 # vagrant config
 - include_tasks:
-    file: vagrant_config_test.yml
+    file: vagrant_ssh_config_test.yml
     apply:
       tags:
-        - config
+        - ssh_config
   tags:
     - always
 
