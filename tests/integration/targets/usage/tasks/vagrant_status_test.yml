@@ -1,5 +1,30 @@
 # Equivalent of "vagrant status" command
-- name: Retrieve vagrant status of instances named frank or frank_instX
+# Case 1
+- name: Retrieve vagrant status of instances named "non_existing_vm"
+  local_action:
+    module: vagrant
+    command: status
+    vm_name: non_existing_vm
+    log: true
+  register: vagrant_status_result
+  ignore_errors: true
+
+- name: dbg vagrant_status_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_status_result }}"
+  tags:
+   - never
+   - debug
+
+- name: Vagrant status should display an error
+  assert:
+    that:
+      - vagrant_status_result is failed
+      - vagrant_status_result is not changed
+      - "vagrant_status_result.msg == 'Vagrant::Errors::MachineNotFound: The machine with the name \\'non_existing_vm\\' was not found configured for this Vagrant environment.'"
+
+# Case 2
+- name: Retrieve vagrant status of instances named frank
   local_action:
     module: vagrant
     command: status
@@ -7,9 +32,12 @@
     log: true
   register: vagrant_status_result
 
-# - name: dbg vagrant_status_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_status_result }}"
+- name: dbg vagrant_status_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_status_result }}"
+  tags:
+   - never
+   - debug
 
 - name: Vagrant status should succeed
   assert:
@@ -17,24 +45,27 @@
       - vagrant_status_result is success
       - vagrant_status_result is not changed
       - vagrant_status_result.status | count == 1
-      - vagrant_status_result.status.frank | count == 2
-      - vagrant_status_result.status.frank[0][0][0] == "frank"
-      - vagrant_status_result.status.frank[0][0][1] == "running"
-      - vagrant_status_result.status.frank[0][0][2] == "virtualbox"
-      - vagrant_status_result.status.frank[1][0][0] == "frank_inst2"
-      - vagrant_status_result.status.frank[1][0][1] == "running"
-      - vagrant_status_result.status.frank[1][0][2] == "virtualbox"
+      - vagrant_status_result.status.frank.name == "frank"
+      - vagrant_status_result.status.frank.state == "running"
+      - vagrant_status_result.status.frank.provider == "virtualbox"
 
-- name: Retrieve vagrant status of instances named frank or frank_instX
+# Case 3
+- name: Retrieve vagrant status of instances named frank and frank_inst2
   local_action:
     module: vagrant
     command: status
+    vm_name:
+      - frank
+      - frank_inst2
     log: true
   register: vagrant_status_result
 
-# - name: dbg vagrant_status_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_status_result }}"
+- name: dbg vagrant_status_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_status_result }}"
+  tags:
+   - never
+   - debug
 
 - name: Vagrant status should succeed
   assert:
@@ -42,34 +73,40 @@
       - vagrant_status_result is success
       - vagrant_status_result is not changed
       - vagrant_status_result.status | count == 2
-      - vagrant_status_result.status.frank | count == 2
-      - vagrant_status_result.status.frank[0][0][0] == "frank"
-      - vagrant_status_result.status.frank[0][0][0] == "frank"
-      - vagrant_status_result.status.frank[0][0][1] == "running"
-      - vagrant_status_result.status.frank[0][0][2] == "virtualbox"
-      - vagrant_status_result.status.frank[1][0][0] == "frank_inst2"
-      - vagrant_status_result.status.frank[1][0][1] == "running"
-      - vagrant_status_result.status.frank[1][0][2] == "virtualbox"
-      - vagrant_status_result.status.fred | count == 1
-      - vagrant_status_result.status.fred[0][0][0] == "fred"
-      - vagrant_status_result.status.fred[0][0][1] == "running"
-      - vagrant_status_result.status.fred[0][0][2] == "virtualbox"
+      - vagrant_status_result.status.frank.name == "frank"
+      - vagrant_status_result.status.frank.state == "running"
+      - vagrant_status_result.status.frank.provider == "virtualbox"
+      - vagrant_status_result.status.frank_inst2.name == "frank_inst2"
+      - vagrant_status_result.status.frank_inst2.state == "running"
+      - vagrant_status_result.status.frank_inst2.provider == "virtualbox"
 
-# This is failing: https://github.com/jclaveau/ansible-vagrant-module/issues/15
+# Case 4
+- name: Retrieve vagrant status of all instances
+  local_action:
+    module: vagrant
+    command: status
+    log: true
+  register: vagrant_status_result
 
-# - name: Retrieve vagrant status of instances named "non_existing_vm"
-#   local_action:
-#     module: vagrant
-#     command: status
-#     vm_name: non_existing_vm
-#     log: true
-#   register: vagrant_status_result
+- name: dbg vagrant_status_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_status_result }}"
+  tags:
+   - never
+   - debug
 
-# - name: dbg vagrant_status_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_status_result }}"
-
-# - name: Vagrant status should be empty
-#   assert:
-#     that:
-#       - vagrant_status_result is success
+- name: Vagrant status of all instances should succeed
+  assert:
+    that:
+      - vagrant_status_result is success
+      - vagrant_status_result is not changed
+      - vagrant_status_result.status | count == 3
+      - vagrant_status_result.status.frank.name == "frank"
+      - vagrant_status_result.status.frank.state == "running"
+      - vagrant_status_result.status.frank.provider == "virtualbox"
+      - vagrant_status_result.status.frank_inst2.name == "frank_inst2"
+      - vagrant_status_result.status.frank_inst2.state == "running"
+      - vagrant_status_result.status.frank_inst2.provider == "virtualbox"
+      - vagrant_status_result.status.fred.name == "fred"
+      - vagrant_status_result.status.fred.state == "running"
+      - vagrant_status_result.status.fred.provider == "virtualbox"

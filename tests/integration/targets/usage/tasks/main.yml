@@ -7,6 +7,8 @@
         - by_commands
   tags:
     - by_commands
+    - status
+    - halt
 
 # vagrant states (running, not_created, poweroff)
 - include_tasks:

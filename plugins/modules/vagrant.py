@@ -123,6 +123,7 @@ import sys
 import subprocess
 import os.path
 import json
+import ast
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 import traceback
@@ -316,38 +317,49 @@ class VagrantWrapper(object):
         ad = self._build_instance_array_for_ansible(vm_name)
         return (changed, ad)
 
-    def status(self, vm_name=None, n=-1):
+    def names_to_instance_names(self, vm_name=None):
+        if isinstance(vm_name, str):
+            try:
+                vm_names = ast.literal_eval(vm_name)
+            except ValueError:
+                vm_names = [vm_name]
+        elif isinstance(vm_name, list):
+            vm_names = vm_name
+        else:
+            vm_names = [vm_name]
+
+        if len(vm_names) == 0:
+            vm_names.append(None)  # [None] if no vm specified
+        # print(vm_names)
+        # quit()
+        # else:
+        #     vm_names = list(self._instances().keys())
+
+        return vm_names
+
+    def status(self, vm_name=None):
         """
         Return the run status of the VM instance. If no instance N is given, returns first instance.
         """
-        vm_names = []
-        if vm_name is not None:
-            vm_names = [vm_name]
-        else:
-            vm_names = list(self._instances().keys())
+        vm_names = self.names_to_instance_names(vm_name)
 
-        statuses = {}
-        for vmn in vm_names:
-            stat_array = []
-            instance_array = self.vg_data['instances'][vmn]
-            if n >= 0:
-                instance_array = [self._get_instance(vmn, n)]
-            for inst in instance_array:
-                vgn = inst['vagrant_name']
-                stat_array.append(self.vg.status(vgn))
-            statuses[vmn] = stat_array
+        out = {}
+        for vm_name in vm_names:
+            try:
+                status_results = self.vg.status(vm_name)
+            except subprocess.CalledProcessError as e:
+                stderr = e.stdout.split(b'\n')[1].split(b',')
+                self.module.fail_json(msg=stderr[3] + b': ' + stderr[4].replace(b'\\n', b' '))
+            for status_result in status_results:
+                out[status_result[0]] = status_result._asdict()
 
-        return (False, statuses)
+        return (False, out)
 
     def config(self, vm_name, n=-1):
         """
         Return info on SSH for the running instance.
         """
-        vm_names = []
-        if vm_name is not None:
-            vm_names = [vm_name]
-        else:
-            vm_names = list(self._instances().keys())
+        vm_names = self.names_to_instance_names(vm_name)
 
         configs = {}
         for vmn in vm_names:
@@ -362,45 +374,34 @@ class VagrantWrapper(object):
 
         return (False, configs)
 
-    def halt(self, vm_name=None, n=-1):
+    def halt(self, vm_params=None):
         """
         Shuts down a vm_name or all VMs.
         """
+        statuses_before = self.status(vm_params)[1]
+        vm_names = statuses_before.keys()
+        for vm_name in vm_names:
+            self.vg.halt(vm_name)
+
         changed = False
-        vm_names = []
-        if vm_name is not None:
-            vm_names = [vm_name]
-        else:
-            vm_names = list(self._instances().keys())
+        statuses_after = self.status(vm_params)[1]
+        for vm_name in vm_names:
+            if statuses_before[vm_name]['state'] != statuses_after[vm_name]['state'] and statuses_after[vm_name]['state'] == 'poweroff':
+                statuses_before[vm_name]['changed'] = True
+                changed = True
+            else:
+                statuses_before[vm_name]['changed'] = False
+            statuses_before[vm_name]['state'] = statuses_after[vm_name]['state']
 
-        statuses = {}
-        for vmn in vm_names:
-            stat_array = []
-            instance_array = self.vg_data['instances'][vmn]
-            if n >= 0:
-                instance_array = [self.vg_data['instances'][vmn][n]]
-            for inst in instance_array:
-                vgn = inst['vagrant_name']
-                if self.vg.status(vgn)[0].state == 'running':
-                    self.vg.halt(vgn)
-                    changed = True
-                stat_array.append(self.vg.status(vgn))
-            statuses[vmn] = stat_array
-
-        return (changed, statuses)
+        return (changed, statuses_before)  # We use statuses_before as output in case statuses_after has more vms due to concurrency
 
     def destroy(self, vm_name=None, n=-1):
         """
         Destroy a VM, or all VMs.
         """
         changed = False
-        vm_names = []
-        if vm_name is not None:
-            if vm_name not in self._instances():
-                self.module.fail_json(msg="failed=True msg='VM to destroy cannot be found: %s'" % vm_name)
-            vm_names = [vm_name]
-        else:
-            vm_names = list(self._instances().keys())
+        vm_names = self.names_to_instance_names(vm_name)
+
 
         statuses = {}
         for vmn in vm_names:
@@ -607,7 +608,7 @@ def main():
             cmd=dict(required=False, aliases=['command']),
             box_name=dict(required=False, aliases=['image']),
             box_path=dict(),
-            vm_name=dict(),
+            vm_name=dict(),  # Can also be a list of vm_names
             forward_ports=dict(),
             count=dict(default=1, type='int'),
             vagrant_root=dict(default='.'),
@@ -689,9 +690,6 @@ def main():
                 module.exit_json(changed=changd, instances=insts)
 
             elif cmd == 'status':
-                # if vm_name is None:
-                #     module.fail_json(msg = "Error: you must specify a vm_name when calling status." )
-
                 (changd, result) = vgw.status(vm_name)
                 module.exit_json(changed=changd, status=result)
 
