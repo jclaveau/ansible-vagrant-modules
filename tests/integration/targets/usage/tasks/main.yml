@@ -10,6 +10,7 @@
     - status
     - halt
     - destroy
+    - config
 
 # vagrant states (running, not_created, poweroff)
 - include_tasks:

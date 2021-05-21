@@ -1,57 +1,100 @@
 # Equivalent of "vagrant ssh-config" command
-- name: Retrieve vagrant status of instances named frank or frank_instX
+# Case 1: bad name
+- name: Retrieve vagrant status of instances named "non_existing_vm"
   local_action:
     module: vagrant
-    command: config
-    vm_name: frank
+    command: ssh_config
+    vm_name: non_existing_vm
     log: true
-  register: vagrant_config_result
+  register: vagrant_ssh_config_result
+  ignore_errors: true
 
-# - name: dbg vagrant_config_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_config_result }}"
+- name: dbg vagrant_ssh_config_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_ssh_config_result }}"
+  tags:
+   - never
+   - debug
+
+- name: Vagrant config should display an error
+  assert:
+    that:
+      - vagrant_ssh_config_result is failed
+      - vagrant_ssh_config_result is not changed
+      - "vagrant_ssh_config_result.msg == 'Vagrant::Errors::MachineNotFound: The machine with the name \\'non_existing_vm\\' was not found configured for this Vagrant environment.'"
+
+# Case 2: without specified vm name
+- name: Call config without specified vm name
+  local_action:
+    module: vagrant
+    command: ssh_config
+    log: true
+  register: vagrant_ssh_config_result
+  ignore_errors: true
+
+- name: dbg vagrant_ssh_config_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_ssh_config_result | count }} - {{ vagrant_up_frank_results.instances | count }}"
+  tags:
+   - never
+   - debug
 
 - name: Vagrant config should succeed
   assert:
     that:
-      - vagrant_config_result is success
-      - vagrant_config_result is not changed
-      - vagrant_config_result.config | count == 1
-      - vagrant_config_result.config.frank | count == vagrant_up_frank_results.instances | count
-
-# - name: dbg vagrant_config_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_up_frank_results }}"
+      - vagrant_ssh_config_result is success
+      - vagrant_ssh_config_result is not changed
+      # TODO Fix it once _instances are removed: https://github.com/jclaveau/ansible-vagrant-module/issues/25
+      # - vagrant_ssh_config_result.ssh_config | count == vagrant_up_frank_results.instances | count
 
 - name: Vagrant config should contain
   assert:
     that:
-      - vagrant_config_result.config.frank[i].Host == "{{ item.vagrant_name }}"
-      - vagrant_config_result.config.frank[i].HostName == "127.0.0.1"
-      - vagrant_config_result.config.frank[i].IdentitiesOnly == "yes"
-      - vagrant_config_result.config.frank[i].IdentityFile == "{{ item.key }}"
-      - vagrant_config_result.config.frank[i].LogLevel == "FATAL"
-      - vagrant_config_result.config.frank[i].PasswordAuthentication == "no"
-      - vagrant_config_result.config.frank[i].Port == "{{ item.port }}"
-      - vagrant_config_result.config.frank[i].StrictHostKeyChecking == "no"
-      - vagrant_config_result.config.frank[i].User == "vagrant"
-      - vagrant_config_result.config.frank[i].UserKnownHostsFile == "/dev/null"
-  loop: '{{vagrant_up_frank_results.instances}}'
-  loop_control:
-    index_var: i
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].Host == "{{ item.vagrant_name }}"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].HostName == "127.0.0.1"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].IdentitiesOnly == "yes"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].IdentityFile == "{{ item.key }}"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].LogLevel == "FATAL"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].PasswordAuthentication == "no"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].Port == "{{ item.port }}"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].StrictHostKeyChecking == "no"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].User == "vagrant"
+      - vagrant_ssh_config_result.ssh_config[ item.vagrant_name ].UserKnownHostsFile == "/dev/null"
+  loop: '{{ vagrant_up_frank_results.instances }}'
 
-# without specified vm name
-- name: Retrieve vagrant status with no instance name
+# Case 3: with 2 vm specified
+- name: Retrieve vagrant status of instances named frank
   local_action:
     module: vagrant
-    command: config
+    command: ssh_config
+    vm_name:
+      - frank
+      - fred
     log: true
-  register: vagrant_config_result
-  ignore_errors: true
+  register: vagrant_ssh_config_result
 
-- name: Vagrant config should fail
+- name: dbg vagrant_ssh_config_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_ssh_config_result }}"
+  tags:
+   - never
+   - debug
+
+- name: Vagrant config should succeed and contain
   assert:
     that:
-      - vagrant_config_result is failed
-      - vagrant_config_result is not changed
-      - vagrant_config_result.msg = "Error: you must specify a vm_name when calling config."
+      - vagrant_ssh_config_result is success
+      - vagrant_ssh_config_result is not changed
+      - vagrant_ssh_config_result.ssh_config | count == 2
+      - vagrant_ssh_config_result.ssh_config[ item ].Host == "{{ item }}"
+      - vagrant_ssh_config_result.ssh_config[ item ].HostName == "127.0.0.1"
+      - vagrant_ssh_config_result.ssh_config[ item ].IdentitiesOnly == "yes"
+      - vagrant_ssh_config_result.ssh_config[ item ].LogLevel == "FATAL"
+      - vagrant_ssh_config_result.ssh_config[ item ].PasswordAuthentication == "no"
+      - vagrant_ssh_config_result.ssh_config[ item ].StrictHostKeyChecking == "no"
+      - vagrant_ssh_config_result.ssh_config[ item ].User == "vagrant"
+      - vagrant_ssh_config_result.ssh_config[ item ].UserKnownHostsFile == "/dev/null"
+      # - vagrant_ssh_config_result.ssh_config[ item ].IdentityFile == "{{ item.key }}"
+      # - vagrant_ssh_config_result.ssh_config[ item ].Port == "{{ item.port }}"
+  loop: ['frank', 'fred']
+

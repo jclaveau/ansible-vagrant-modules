@@ -330,10 +330,6 @@ class VagrantWrapper(object):
 
         if len(vm_names) == 0:
             vm_names.append(None)  # [None] if no vm specified
-        # print(vm_names)
-        # quit()
-        # else:
-        #     vm_names = list(self._instances().keys())
 
         return vm_names
 
@@ -355,24 +351,24 @@ class VagrantWrapper(object):
 
         return (False, out)
 
-    def config(self, vm_name, n=-1):
+    def ssh_config(self, vm_params):
         """
         Return info on SSH for the running instance.
         """
-        vm_names = self.names_to_instance_names(vm_name)
+        # self.vg.conf(None, None) returns only the last vm data so we loop on status results
+        statuses_before = self.status(vm_params)[1]
+        vm_names = statuses_before.keys()
 
-        configs = {}
-        for vmn in vm_names:
-            conf_array = []
-            instance_array = self.vg_data['instances'][vmn]
-            if n >= 0:
-                instance_array = [self._get_instance(vmn, n)]
-            for inst in instance_array:
-                cnf = self.vg.conf(None, inst['vagrant_name'])
-                conf_array.append(cnf)
-            configs[vmn] = conf_array
+        out = {}
+        for vm_name in vm_names:
+            try:
+                conf_result = self.vg.conf(None, vm_name)
+            except subprocess.CalledProcessError:
+                # E as no content as errors are not properly handled in the python vagrant module
+                self.module.fail_json(msg="Vagrant::Errors::MachineNotFound: The machine with the name '%s' was not found configured for this Vagrant environment." % vm_name)
+            out[vm_name] = conf_result
 
-        return (False, configs)
+        return (False, out)
 
     def halt(self, vm_params=None):
         """
@@ -687,11 +683,9 @@ def main():
                 (changd, result) = vgw.status(vm_name)
                 module.exit_json(changed=changd, status=result)
 
-            elif cmd == "config" or cmd == "conf":
-                if vm_name is None:
-                    module.fail_json(msg="Error: you must specify a vm_name when calling config.")
-                (changd, cnf) = vgw.config(vm_name)
-                module.exit_json(changed=changd, config=cnf)
+            elif cmd == "ssh_config":
+                (changd, cnf) = vgw.ssh_config(vm_name)
+                module.exit_json(changed=changd, ssh_config=cnf)
 
             elif cmd == 'ssh_command':
                 if vm_name is None:
