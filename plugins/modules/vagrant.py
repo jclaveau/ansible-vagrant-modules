@@ -395,32 +395,26 @@ class VagrantWrapper(object):
 
         return (changed, statuses_before)  # We use statuses_before as output in case statuses_after has more vms due to concurrency
 
-    def destroy(self, vm_name=None, n=-1):
+    def destroy(self, vm_params=None):
         """
         Destroy a VM, or all VMs.
         """
+        statuses_before = self.status(vm_params)[1]
+        vm_names = statuses_before.keys()
+        for vm_name in vm_names:
+            self.vg.destroy(vm_name)
+
         changed = False
-        vm_names = self.names_to_instance_names(vm_name)
+        statuses_after = self.status(vm_params)[1]
+        for vm_name in vm_names:
+            if statuses_before[vm_name]['state'] != statuses_after[vm_name]['state'] and statuses_after[vm_name]['state'] == 'not_created':
+                statuses_before[vm_name]['changed'] = True
+                changed = True
+            else:
+                statuses_before[vm_name]['changed'] = False
+            statuses_before[vm_name]['state'] = statuses_after[vm_name]['state']
 
-
-        statuses = {}
-        for vmn in vm_names:
-            stat_array = []
-            instance_array = self.vg_data['instances'][vmn]
-            if n > 1:
-                if len(self.vg_data['instances'][vmn]) < n:
-                    self.module.fail_json(msg="failed=True msg='VM to destroy cannot be found: %s_inst%d'" % (vmn, n))
-                instance_array = [self.vg_data['instances'][vmn][n - 1]]
-            for inst in instance_array:
-                vgn = inst['vagrant_name']
-                if self.vg.status(vgn)[0].state != 'not_created':
-                    self.vg.destroy(vgn)
-                    self.vg.halt(vgn)
-                    changed = True
-                stat_array.append(self.vg.status(vgn))
-            statuses[vmn] = stat_array
-
-        return (changed, statuses)
+        return (changed, statuses_before)  # We use statuses_before as output in case statuses_after has more vms due to concurrency
 
     def clear(self):
         """
@@ -679,7 +673,7 @@ def main():
                 module.exit_json(changed=changd, status=stats)
 
             if state == 'not_created':
-                (changd, stats) = vgw.destroy(vm_name, count)
+                (changd, stats) = vgw.destroy(vm_name)
                 module.exit_json(changed=changd, status=stats)
         else:
             if cmd == 'up':
@@ -736,7 +730,7 @@ def main():
                 module.exit_json(changed=changd, status=stats)
 
             elif cmd == 'destroy':
-                (changd, stats) = vgw.destroy(vm_name, count)
+                (changd, stats) = vgw.destroy(vm_name)
                 module.exit_json(changed=changd, status=stats)
 
             elif cmd == 'clear':

@@ -1,4 +1,5 @@
 # Equivalent of "vagrant destroy" command
+# Case 1
 - name: Destroy non existing vm
   local_action:
     module: vagrant
@@ -8,99 +9,37 @@
   register: vagrant_destroy_result
   ignore_errors: true
 
-# - name: dbg vagrant_destroy_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_destroy_result }}"
+- name: dbg vagrant_destroy_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_destroy_result }}"
+  tags:
+   - never
+   - debug
 
 - name: Vagrant destroy should succeed
   assert:
     that:
       - vagrant_destroy_result is failed
       - vagrant_destroy_result is not changed
-      - vagrant_destroy_result.msg == "VM to destroy cannot be found: lalala"
+      - "vagrant_destroy_result.msg == 'Vagrant::Errors::MachineNotFound: The machine with the name \\'lalala\\' was not found configured for this Vagrant environment.'"
 
-- name: Destroy non existing vm becase of its count
+# Case 2
+- name: Destroy frank and frank_inst2
   local_action:
     module: vagrant
     command: destroy
-    vm_name: frank
-    count: 9
-    log: true
-  register: vagrant_destroy_result
-  ignore_errors: true
-
-# - name: dbg vagrant_destroy_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_destroy_result }}"
-
-- name: Vagrant destroy should fail
-  assert:
-    that:
-      - vagrant_destroy_result is failed
-      - vagrant_destroy_result is not changed
-      - vagrant_destroy_result.msg == "VM to destroy cannot be found: frank_inst9"
-
-- name: Destroy frank_inst2
-  local_action:
-    module: vagrant
-    command: destroy
-    vm_name: frank
-    count: 2
+    vm_name:
+       - frank
+       - frank_inst2
     log: true
   register: vagrant_destroy_result
 
-# - name: dbg vagrant_destroy_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_destroy_result }}"
-
-- name: Vagrant destroy should succeed
-  assert:
-    that:
-      - vagrant_destroy_result is success
-      - vagrant_destroy_result is changed
-      - vagrant_destroy_result.status | count == 1
-      - vagrant_destroy_result.status.frank | count == 1
-      - vagrant_destroy_result.status.frank[0][0][0] == "frank_inst2"
-      - vagrant_destroy_result.status.frank[0][0][1] == "not_created"
-      - vagrant_destroy_result.status.frank[0][0][2] == "virtualbox"
-
-- name: Destroy all instances named frank...
-  local_action:
-    module: vagrant
-    command: destroy
-    vm_name: frank
-    log: true
-  register: vagrant_destroy_result
-
-# - name: dbg vagrant_destroy_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_destroy_result }}"
-
-- name: Vagrant destroy should succeed
-  assert:
-    that:
-      - vagrant_destroy_result is success
-      - vagrant_destroy_result is changed
-      - vagrant_destroy_result.status | count == 1
-      - vagrant_destroy_result.status.frank | count == 2
-      - vagrant_destroy_result.status.frank[0][0][0] == "frank"
-      - vagrant_destroy_result.status.frank[0][0][1] == "not_created"
-      - vagrant_destroy_result.status.frank[0][0][2] == "virtualbox"
-      - vagrant_destroy_result.status.frank[1][0][0] == "frank_inst2"
-      - vagrant_destroy_result.status.frank[1][0][1] == "not_created"
-      - vagrant_destroy_result.status.frank[1][0][2] == "virtualbox"
-
-# without specified vm name
-- name: Call destroy without vm_name
-  local_action:
-    module: vagrant
-    command: destroy
-    log: true
-  register: vagrant_destroy_result
-
-# - name: dbg vagrant_destroy_result
-#   ansible.builtin.debug:
-#     msg: "{{ vagrant_destroy_result }}"
+- name: dbg vagrant_destroy_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_destroy_result }}"
+  tags:
+   - never
+   - debug
 
 - name: Vagrant destroy should succeed
   assert:
@@ -108,14 +47,37 @@
       - vagrant_destroy_result is success
       - vagrant_destroy_result is changed
       - vagrant_destroy_result.status | count == 2
-      - vagrant_destroy_result.status.frank | count == 2
-      - vagrant_destroy_result.status.frank[0][0][0] == "frank"
-      - vagrant_destroy_result.status.frank[0][0][1] == "not_created"
-      - vagrant_destroy_result.status.frank[0][0][2] == "virtualbox"
-      - vagrant_destroy_result.status.frank[1][0][0] == "frank_inst2"
-      - vagrant_destroy_result.status.frank[1][0][1] == "not_created"
-      - vagrant_destroy_result.status.frank[1][0][2] == "virtualbox"
-      - vagrant_destroy_result.status.fred | count == 1
-      - vagrant_destroy_result.status.fred[0][0][0] == "fred"
-      - vagrant_destroy_result.status.fred[0][0][1] == "not_created"
-      - vagrant_destroy_result.status.fred[0][0][2] == "virtualbox"
+      - vagrant_destroy_result.status.frank.name == "frank"
+      - vagrant_destroy_result.status.frank.state == "not_created"
+      - vagrant_destroy_result.status.frank.provider == "virtualbox"
+      - vagrant_destroy_result.status.frank_inst2.name == "frank_inst2"
+      - vagrant_destroy_result.status.frank_inst2.state == "not_created"
+      - vagrant_destroy_result.status.frank_inst2.provider == "virtualbox"
+
+# Case 3: without specified vm name
+- name: Call destroy without vm_name
+  local_action:
+    module: vagrant
+    command: destroy
+    log: true
+  register: vagrant_destroy_result
+
+- name: dbg vagrant_destroy_result
+  ansible.builtin.debug:
+    msg: "{{ vagrant_destroy_result }}"
+
+- name: Vagrant destroy should succeed
+  assert:
+    that:
+      - vagrant_destroy_result is success
+      - vagrant_destroy_result is changed
+      - vagrant_destroy_result.status | count == 3
+      - vagrant_destroy_result.status.frank.name == "frank"
+      - vagrant_destroy_result.status.frank.state == "not_created"
+      - vagrant_destroy_result.status.frank.provider == "virtualbox"
+      - vagrant_destroy_result.status.frank_inst2.name == "frank_inst2"
+      - vagrant_destroy_result.status.frank_inst2.state == "not_created"
+      - vagrant_destroy_result.status.frank_inst2.provider == "virtualbox"
+      - vagrant_destroy_result.status.fred.name == "fred"
+      - vagrant_destroy_result.status.fred.state == "not_created"
+      - vagrant_destroy_result.status.fred.provider == "virtualbox"

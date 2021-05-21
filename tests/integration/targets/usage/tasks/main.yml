@@ -9,6 +9,7 @@
     - by_commands
     - status
     - halt
+    - destroy
 
 # vagrant states (running, not_created, poweroff)
 - include_tasks:
