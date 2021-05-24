@@ -1,0 +1,310 @@
+---
+# - name: Find out playbook's path
+#   shell: pwd
+#   register: playbook_path_output
+# - debug: var=playbook_path_output.stdout
+
+- name: Start with no Vagrantfile / vagrant-hosts.yml
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: absent
+
+- name: Create synced folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /tmp/test
+    - /tmp/var/www/html
+
+- name: Add two vms to the Vagrantfile
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    names:
+      - "srv001"
+      - "srv002"
+    config:
+      box: debian/buster64
+      memory: 2048
+      cpus: 2
+      ip: 172.20.0.10
+      netmask: 255.255.0.0
+      mac: '13:37:de:ad:be:ef'
+      playbook: srv002.yml
+      forwarded_ports:
+        - host: 8080
+          guest: 80
+        - host: 8443
+          guest: 443
+      synced_folders:
+        - src: /tmp
+          dest: /tmp/test
+        - src: /var/www
+          dest: /tmp/var/www/html
+          options:
+            :create: true
+            :owner: root
+            :group: root
+            :mount_options: ['dmode=0755', 'fmode=0644']
+  register: vagrant_config_add_results
+
+- name: dbg up results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_add_results }}"
+  tags:
+   - never
+   - debug
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_add_results is success
+      - vagrant_config_add_results is changed
+      - vagrant_config_add_results.vms.need_up == ['srv001', 'srv002']
+      - vagrant_config_add_results.vms.need_destroy_and_up == []
+      - vagrant_config_add_results.vms.need_reload == []
+
+- name: Register expected vagrant-hosts.yml content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_vagrant_hosts_content:
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: 8080
+        - guest: 443
+          host: 8443
+        ip: 172.20.0.10
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv001
+        netmask: 255.255.0.0
+        playbook: srv002.yml
+        synced_folders:
+        - dest: /tmp/test
+          src: /tmp
+        - dest: /tmp/var/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: 8080
+        - guest: 443
+          host: 8443
+        ip: 172.20.0.10
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv002
+        netmask: 255.255.0.0
+        playbook: srv002.yml
+        synced_folders:
+        - dest: /tmp/test
+          src: /tmp
+        - dest: /tmp/var/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+
+- name: vagrant-hosts.yml should contain
+  assert:
+    that:
+      - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+  with_file:
+    - ./vagrant-hosts.yml
+
+# - name: dbg host file
+#   ansible.builtin.debug:
+#     msg: "{{ item }}"
+#   with_file:
+#     - ./vagrant-hosts.yml
+  # tags:
+  #  - never
+  #  - debug
+
+# add new on an already existing config file
+- name: Add new vm on an already existing  Vagrantfile
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    names:
+      - "srv003"
+    config:
+      box: debian/buster64
+  register: vagrant_config_add_results
+
+- name: dbg results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_add_results }}"
+  # tags:
+  #  - never
+  #  - debug
+
+# - name: dbg host file
+#   ansible.builtin.debug:
+#     msg: "{{ item }}"
+#   with_file:
+#     - ./vagrant-hosts.yml
+  # tags:
+  #  - never
+  #  - debug
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_add_results is success
+      - vagrant_config_add_results is changed
+      - vagrant_config_add_results.vms.need_up == ['srv003']
+      - vagrant_config_add_results.vms.need_destroy_and_up == []
+      - vagrant_config_add_results.vms.need_reload == []
+      - vagrant_config_add_results.vms.unchanged == ['srv001', 'srv002']
+
+- name: Register expected vagrant-hosts.yml content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_vagrant_hosts_content:
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: 8080
+        - guest: 443
+          host: 8443
+        ip: 172.20.0.10
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv001
+        netmask: 255.255.0.0
+        playbook: srv002.yml
+        synced_folders:
+        - dest: /tmp/test
+          src: /tmp
+        - dest: /tmp/var/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: 8080
+        - guest: 443
+          host: 8443
+        ip: 172.20.0.10
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv002
+        netmask: 255.255.0.0
+        playbook: srv002.yml
+        synced_folders:
+        - dest: /tmp/test
+          src: /tmp
+        - dest: /tmp/var/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster64
+        name: srv003
+
+- name: vagrant-hosts.yml should contain
+  assert:
+    that:
+      - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+  with_file:
+    - ./vagrant-hosts.yml
+
+# remove one box => need_destroy
+- name: Remove srv002
+  jclaveau.vagrant.config:
+  args:
+    state: "absent"
+    names:
+      - "srv002"
+      - "srv004"
+    config:
+      box: debian/buster64
+  register: vagrant_config_absent_results
+  tags:
+   - destroy
+
+- name: dbg absent results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_absent_results }}"
+  tags:
+   - never
+   - debug
+   - destroy
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_absent_results is success
+      - vagrant_config_absent_results is changed
+      - vagrant_config_absent_results.vms.need_destroy == ['srv002']
+      - vagrant_config_absent_results.vms.unchanged == ['srv001', 'srv003']
+      - vagrant_config_absent_results.vms.not_found == ['srv004']
+  tags:
+   - destroy
+
+- name: Register expected vagrant-hosts.yml content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_vagrant_hosts_content:
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: 8080
+        - guest: 443
+          host: 8443
+        ip: 172.20.0.10
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv001
+        netmask: 255.255.0.0
+        playbook: srv002.yml
+        synced_folders:
+        - dest: /tmp/test
+          src: /tmp
+        - dest: /tmp/var/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster64
+        name: srv003
+
+- name: vagrant-hosts.yml should contain
+  assert:
+    that:
+      - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+  with_file:
+    - ./vagrant-hosts.yml
