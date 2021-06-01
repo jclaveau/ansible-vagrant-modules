@@ -236,7 +236,7 @@ import os.path
 import copy
 from deepdiff import DeepDiff # import json
 # from deepdiff.model import DiffLevel # import json
-from pprint import pprint
+# from pprint import pprint
 # import ast
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
@@ -250,81 +250,58 @@ class VagrantConfig(object):
         '''
         Wrapper around the python-vagrant module for use with ansible.
         '''
-        log = kwargs.setdefault('log', False)
         self.module = kwargs.setdefault('module', None)
         self.root = kwargs.setdefault('root', '.')
 
-    def turnPresentInConfig(self, names, new_config, new_groups):
-        # load the yaml file or create it
-        found = []
-        unchanged = []
-        need_reload = []
-        need_destroy_and_up = []
-        need_up = []
+    def turn_present_in_config(self, name, new_config, new_groups):
+        found = False
+        needs = []
 
         # The content that will be written to the yaml file
         updated_config = []
+
+        # load the yaml file or create it
         with open(self.root + "/vagrant-hosts.yml", 'a+') as stream:
             stream.seek(0)
-            existing_config = yaml.safe_load(stream)
-            # except yaml.YAMLError as exc:
-            #     print(exc)
-            # print(existing_config)
-            # quit()
+            try:
+                existing_config = yaml.safe_load(stream)
+            except yaml.YAMLError as e:
+                self.module.fail_json(msg=e)
+
             if existing_config is not None:
                 for existing_host in existing_config:
-                    # print(existing_host)
-                    # quit()
-                    host_new_config = copy.deepcopy(new_config)
-                    host_new_config['name'] = existing_host['name']
-                    if existing_host['name'] not in names:
-                        # we store non existing host to add them later
+                    if existing_host['name'] != name:
+                        # we store already existing hosts to readd them later
                         updated_config.append(existing_host)
-                        unchanged.append(existing_host['name'])
                     else:
                         # we check the diff between the current config and the new one to know
                         # if we need a reload or a detsroy
-
-                        host_new_config['name'] = existing_host['name']
-                        diff = DeepDiff(existing_host, host_new_config)
-                        found.append(host_new_config['name'])
+                        found = True
+                        new_config['name'] = existing_host['name']
+                        diff = DeepDiff(existing_host, new_config)
 
                         # box_name changes
                         if (('values_changed' in diff and "root['box_name']" in diff['values_changed'].keys())
                                 or ('dictionary_item_added' in diff and "root['box_name']" in diff['dictionary_item_added'])
                                 or ('dictionary_item_removed' in diff and "root['box_name']" in diff['dictionary_item_removed'])
                                 ):
-                            need_destroy_and_up.append(host_new_config['name'])
-                            # print("need destroy")
-                            # quit()
+                            needs.append('destroy', 'up')
                         # ports changes
                         elif (('values_changed' in diff and "root['forwarded_ports']" in diff['values_changed'].keys())
                                 or ('dictionary_item_added' in diff and "root['forwarded_ports']" in diff['dictionary_item_added'])
                                 or ('dictionary_item_removed' in diff and "root['forwarded_ports']" in diff['dictionary_item_removed'])
                                 ):
-                            need_reload.append(host_new_config['name'])
-                            # print("need reload")
-                            # quit()
+                            needs.append('reload')
 
-                        updated_config.append(host_new_config)
                         # replace the old config by the new one
+                        updated_config.append(new_config)
 
-            # add new vms to the config to write
-            not_found_diff = DeepDiff(found, names)
-            # print(not_found_diff)
-            if 'iterable_item_added' in not_found_diff:
-                for item_name in not_found_diff['iterable_item_added']:
-                    host_new_config = copy.deepcopy(new_config)
-                    host_new_config['name'] = not_found_diff['iterable_item_added'][item_name]
-                    need_up.append(host_new_config['name'])
-                    updated_config.append(host_new_config)
-                    # print("need up")
+            if not found:  # add the new vm to the config
+                new_config['name'] = name
+                needs.append('up')
+                updated_config.append(new_config)
 
-            # save the full config to the file
-            # print(yaml.dump(updated_config, allow_unicode=True, default_flow_style=False))
-            # with open(self.root + "/vagrant-hosts.yml", 'w') as stream:
             stream.truncate(0)
-            # print(updated_config)
             yaml.dump(updated_config, stream, allow_unicode=True, default_flow_style=False)
             self.ensure_vagrantfile_present(updated_config)
 
@@ -336,64 +313,52 @@ class VagrantConfig(object):
             for group in new_groups:
                 if group not in existing_groups:
                     existing_groups[group] = []
-                for name in names:
-                    if name not in existing_groups[group]:
-                        existing_groups[group].append(name)
+                if name not in existing_groups[group]:
+                    existing_groups[group].append(name)
             stream.truncate(0)
             if len(existing_groups):
                 yaml.dump(existing_groups, stream, allow_unicode=True, default_flow_style=False)
 
-
-        # retourner change ou pas
         out = {
-            'need_reload': need_reload,
-            'need_destroy_and_up': need_destroy_and_up,
-            'need_up': need_up,
-            'unchanged': unchanged,
+            'needs': needs
         }
         # print(out)
         return out
 
-    def turnAbsentFromConfig(self, names, config_filter, groups_filter):
-        # load the yaml file or create it
-        found = []
-        not_found = []
-        unchanged = []
-        need_destroy = []
+    def turn_absent_from_config(self, name, config_filter, groups_filter):
+        found = False
+        needs = []
 
         # The content that will be written to the yaml file
         updated_config = []
+
+        # load the yaml file or create it
         with open(self.root + "/vagrant-hosts.yml", 'a+') as stream:
             stream.seek(0)
-            existing_config = yaml.safe_load(stream)
+            try:
+                existing_config = yaml.safe_load(stream)
+            except yaml.YAMLError as e:
+                self.module.fail_json(msg=e)
 
             if existing_config is not None:
                 for existing_host in existing_config:
-                    if existing_host['name'] not in names:
+                    if existing_host['name'] != name:
                         # we store non existing host to add them later
                         updated_config.append(existing_host)
-                        unchanged.append(existing_host['name'])
                     else:
                         # TODO ignore_order=True
                         diff = DeepDiff(existing_host, config_filter)
-                        found.append(existing_host['name'])
                         if 'dictionary_item_added' not in diff and 'values_changed' not in diff:  # the config filter matches the existing host
-                            need_destroy.append(existing_host['name'])
-
-            # Check if a vm name wasn't found
-            not_found_diff = DeepDiff(found, names)
-            if 'iterable_item_added' in not_found_diff:
-                for item_name in not_found_diff['iterable_item_added']:
-                    not_found.append(not_found_diff['iterable_item_added'][item_name])
+                            found = True
+                            needs.append('destroy')
 
             stream.truncate(0)
             yaml.dump(updated_config, stream, allow_unicode=True, default_flow_style=False)
             self.ensure_vagrantfile_present(updated_config)
 
         out = {
-            'need_destroy': need_destroy,
-            'unchanged': unchanged,
-            'not_found': not_found,
+            'found': found,
+            'needs': needs
         }
         # print(out)
         return out
@@ -403,6 +368,20 @@ class VagrantConfig(object):
             with open(self.root + "/Vagrantfile", 'w') as stream:
                 stream.write(VAGRANT_FILE)
 
+    def dump(self, name=None):
+        out = []
+        with open(self.root + "/vagrant-hosts.yml", 'r') as stream:
+            try:
+                existing_config = yaml.safe_load(stream)
+            except yaml.YAMLError as e:
+                self.module.fail_json(msg=e)
+
+            if existing_config is not None:
+                for existing_host in existing_config:
+                    if name is None or name == existing_host['name']:
+                        out.append(existing_host)
+        # print(out)
+        return out
 
 # --------
 # MAIN
@@ -411,7 +390,7 @@ def main():
 
     module = AnsibleModule(
         argument_spec=dict(
-            names=dict(type='list'),
+            name=dict(type='str'),
             state=dict(),  # absent / present
             config=dict(type='dict'),
             groups=dict(type='list', default=[]),
@@ -421,14 +400,12 @@ def main():
         )
     )
 
-    names = module.params.get('names')
+    name = module.params.get('name')
     state = module.params.get('state')
     config_param = module.params.get('config')
     groups_param = module.params.get('groups')
     root = module.params.get('root')
     log = module.boolean(module.params.get('log'))
-    apply = module.boolean(module.params.get('apply'))
-
 
     root_path = os.path.abspath(root)
     # root_path = os.path.abspath(os.path.join(root, ".vagrant"))
@@ -439,33 +416,24 @@ def main():
         module=module,
         root=root,  # optionnal
         log=log,  # optionnal
-        # names=names,  # required
-        # state=state,  # optionnal None / Absent / present
-        # config=config,  # optionnal
     )
 
     changed = False
     if state == 'absent':
-        results = config.turnAbsentFromConfig(names=names, config_filter=config_param, groups_filter=groups_param)
+        results = config.turn_absent_from_config(name=name, config_filter=config_param, groups_filter=groups_param)
         changed = True
         module.exit_json(changed=changed, vms=results)
 
-    elif state == 'present':  # merges the provided config into the existing one
-        results = config.turnPresentInConfig(names=names, new_config=config_param, new_groups=groups_param)
-        if (len(results['need_up']) or len(results['need_destroy_and_up']) or len(results['need_reload'])):
-            changed = True
-        # needs destroy / up or need reload
-        module.exit_json(changed=changed, vms=results)
-
-    elif state == 'present_only':  # replaces the existing config into the provided one
-        results = config.turnPresentInConfig(names=names, new_config=config_param, new_groups=groups_param)
-        if (len(results['need_up']) or len(results['need_destroy']) or len(results['need_reload'])):
+    elif state == 'present':  # replaces the existing config into the provided one
+        results = config.turn_present_in_config(name=name, new_config=config_param, new_groups=groups_param)
+        if len(results['needs']):
             changed = True
         # needs destroy / up or need reload
         module.exit_json(changed=changed, vms=results)
 
     elif state is None:
-        module.exit_json(changed=False, vms=vms)
+        results = config.dump(name=name)
+        module.exit_json(changed=False, vms=results)
 
     module.exit_json(status="success")
 

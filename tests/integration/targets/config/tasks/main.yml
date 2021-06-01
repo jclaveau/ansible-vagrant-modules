@@ -14,40 +14,44 @@
     path: "{{ item }}"
     state: directory
   loop:
-    - /tmp/test
+    - /tmp/srv001
+    - /tmp/srv002
     - /tmp/var/www/html
 
 - name: Add two vms to the Vagrantfile
   jclaveau.vagrant.config:
   args:
     state: "present"
-    names:
-      - "srv001"
-      - "srv002"
+    name: "{{ item }}"
     config:
       box: debian/buster64
       memory: 2048
       cpus: 2
-      ip: 172.20.0.10
+      ip: "172.20.0.{{ i }}"
       netmask: 255.255.0.0
       mac: '13:37:de:ad:be:ef'
-      playbook: srv002.yml
+      # playbook: "{ item }.yml"
       forwarded_ports:
-        - host: 8080
+        - host: "808{{ i }}"
           guest: 80
-        - host: 8443
+        - host: "8{{ i }}43"
           guest: 443
       synced_folders:
-        - src: /tmp
-          dest: /tmp/test
+        - src: "/tmp"
+          dest: "/tmp/{{ item }}"
         - src: /var/www
-          dest: /tmp/var/www/html
+          dest: /tmp/{{ item }}/www/html
           options:
             :create: true
             :owner: root
             :group: root
             :mount_options: ['dmode=0755', 'fmode=0644']
   register: vagrant_config_add_results
+  loop:
+    - "srv001"
+    - "srv002"
+  loop_control:
+    index_var: "i"
 
 - name: dbg up results
   ansible.builtin.debug:
@@ -61,9 +65,9 @@
     that:
       - vagrant_config_add_results is success
       - vagrant_config_add_results is changed
-      - vagrant_config_add_results.vms.need_up == ['srv001', 'srv002']
-      - vagrant_config_add_results.vms.need_destroy_and_up == []
-      - vagrant_config_add_results.vms.need_reload == []
+      - vagrant_config_add_results.results | count == 2
+      - vagrant_config_add_results.results[0].vms.needs == ['up']
+      - vagrant_config_add_results.results[1].vms.needs == ['up']
 
 - name: Register expected vagrant-hosts.yml content
   no_log: true
@@ -73,19 +77,18 @@
         cpus: 2
         forwarded_ports:
         - guest: 80
-          host: 8080
+          host: '8080'
         - guest: 443
-          host: 8443
-        ip: 172.20.0.10
+          host: '8043'
+        ip: 172.20.0.0
         mac: 13:37:de:ad:be:ef
         memory: 2048
         name: srv001
         netmask: 255.255.0.0
-        playbook: srv002.yml
         synced_folders:
-        - dest: /tmp/test
+        - dest: /tmp/srv001
           src: /tmp
-        - dest: /tmp/var/www/html
+        - dest: /tmp/srv001/www/html
           options:
             :create: true
             :group: root
@@ -98,19 +101,18 @@
         cpus: 2
         forwarded_ports:
         - guest: 80
-          host: 8080
+          host: '8081'
         - guest: 443
-          host: 8443
-        ip: 172.20.0.10
+          host: '8143'
+        ip: 172.20.0.1
         mac: 13:37:de:ad:be:ef
         memory: 2048
         name: srv002
         netmask: 255.255.0.0
-        playbook: srv002.yml
         synced_folders:
-        - dest: /tmp/test
+        - dest: /tmp/srv002
           src: /tmp
-        - dest: /tmp/var/www/html
+        - dest: /tmp/srv002/www/html
           options:
             :create: true
             :group: root
@@ -141,8 +143,7 @@
   jclaveau.vagrant.config:
   args:
     state: "present"
-    names:
-      - "srv003"
+    name: "srv003"
     config:
       box: debian/buster64
   register: vagrant_config_add_results
@@ -168,10 +169,7 @@
     that:
       - vagrant_config_add_results is success
       - vagrant_config_add_results is changed
-      - vagrant_config_add_results.vms.need_up == ['srv003']
-      - vagrant_config_add_results.vms.need_destroy_and_up == []
-      - vagrant_config_add_results.vms.need_reload == []
-      - vagrant_config_add_results.vms.unchanged == ['srv001', 'srv002']
+      - vagrant_config_add_results.vms.needs == ['up']
 
 - name: Register expected vagrant-hosts.yml content
   no_log: true
@@ -181,19 +179,18 @@
         cpus: 2
         forwarded_ports:
         - guest: 80
-          host: 8080
+          host: '8080'
         - guest: 443
-          host: 8443
-        ip: 172.20.0.10
+          host: '8043'
+        ip: 172.20.0.0
         mac: 13:37:de:ad:be:ef
         memory: 2048
         name: srv001
         netmask: 255.255.0.0
-        playbook: srv002.yml
         synced_folders:
-        - dest: /tmp/test
+        - dest: /tmp/srv001
           src: /tmp
-        - dest: /tmp/var/www/html
+        - dest: /tmp/srv001/www/html
           options:
             :create: true
             :group: root
@@ -206,19 +203,18 @@
         cpus: 2
         forwarded_ports:
         - guest: 80
-          host: 8080
+          host: '8081'
         - guest: 443
-          host: 8443
-        ip: 172.20.0.10
+          host: '8143'
+        ip: 172.20.0.1
         mac: 13:37:de:ad:be:ef
         memory: 2048
         name: srv002
         netmask: 255.255.0.0
-        playbook: srv002.yml
         synced_folders:
-        - dest: /tmp/test
+        - dest: /tmp/srv002
           src: /tmp
-        - dest: /tmp/var/www/html
+        - dest: /tmp/srv002/www/html
           options:
             :create: true
             :group: root
@@ -242,14 +238,15 @@
   jclaveau.vagrant.config:
   args:
     state: "absent"
-    names:
-      - "srv002"
-      - "srv004"
+    name: "{{ item }}"
     config:
       box: debian/buster64
   register: vagrant_config_absent_results
   tags:
    - destroy
+  loop:
+    - "srv002"
+    - "srv004"
 
 - name: dbg absent results
   ansible.builtin.debug:
@@ -264,9 +261,8 @@
     that:
       - vagrant_config_absent_results is success
       - vagrant_config_absent_results is changed
-      - vagrant_config_absent_results.vms.need_destroy == ['srv002']
-      - vagrant_config_absent_results.vms.unchanged == ['srv001', 'srv003']
-      - vagrant_config_absent_results.vms.not_found == ['srv004']
+      - vagrant_config_absent_results.results[0].vms.needs == ['destroy']
+      - vagrant_config_absent_results.results[1].vms.needs == []
   tags:
    - destroy
 
@@ -278,19 +274,18 @@
         cpus: 2
         forwarded_ports:
         - guest: 80
-          host: 8080
+          host: '8080'
         - guest: 443
-          host: 8443
-        ip: 172.20.0.10
+          host: '8043'
+        ip: 172.20.0.0
         mac: 13:37:de:ad:be:ef
         memory: 2048
         name: srv001
         netmask: 255.255.0.0
-        playbook: srv002.yml
         synced_folders:
-        - dest: /tmp/test
+        - dest: /tmp/srv001
           src: /tmp
-        - dest: /tmp/var/www/html
+        - dest: /tmp/srv001/www/html
           options:
             :create: true
             :group: root
@@ -308,3 +303,63 @@
       - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
   with_file:
     - ./vagrant-hosts.yml
+
+# Dump the config
+- name: Dump srv003
+  jclaveau.vagrant.config:
+  args:
+    name: "srv001"
+    # config:
+    #   box: debian/buster64
+  register: vagrant_config_dump_results
+  tags:
+   - dump
+
+- name: dbg dump results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_dump_results }}"
+  tags:
+   - never
+   - debug
+   - dump
+
+- name: Register expected dump content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_dump_content:
+      box: debian/buster64
+      cpus: 2
+      forwarded_ports:
+      - guest: 80
+        host: '8080'
+      - guest: 443
+        host: '8043'
+      ip: 172.20.0.0
+      mac: 13:37:de:ad:be:ef
+      memory: 2048
+      name: srv001
+      netmask: 255.255.0.0
+      synced_folders:
+      - dest: /tmp/srv001
+        src: /tmp
+      - dest: /tmp/srv001/www/html
+        options:
+          :create: true
+          :group: root
+          :mount_options:
+          - dmode=0755
+          - fmode=0644
+          :owner: root
+        src: /var/www
+  tags:
+   - dump
+
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_dump_results is success
+      - vagrant_config_dump_results is not changed
+      - "{{ vagrant_config_dump_results.vms[0] }} ==  {{ expected_dump_content }} "
+  tags:
+   - dump
