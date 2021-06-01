@@ -101,6 +101,13 @@ def windows_host?
   Vagrant::Util::Platform.windows?
 end
 
+# https://github.com/hashicorp/vagrant/issues/8878
+class VagrantPlugins::ProviderVirtualBox::Action::Network
+  def dhcp_server_matches_config?(dhcp_server,config)
+    true
+  end
+end
+
 # Set options for the network interface configuration. All values are
 # optional, and can include:
 # - ip (default = DHCP)
@@ -174,6 +181,7 @@ def forwarded_ports(vm, host)
 end
 
 def provision_ansible(node, host, groups)
+  return unless host.key?('playbook')
   ansible_mode = run_locally? ? 'ansible_local' : 'ansible'
   node.vm.provision ansible_mode do |ansible|
     ansible.compatibility_mode = '2.0'
@@ -197,7 +205,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       node.vm.box_url = host['box_url'] if host.key? 'box_url'
 
       node.vm.hostname = host['name']
-      node.vm.network :private_network, network_options(host)
+      node.vm.network :private_network, **network_options(host)
       custom_synced_folders(node.vm, host)
       shell_provisioners_always(node.vm, host)
       forwarded_ports(node.vm, host)
