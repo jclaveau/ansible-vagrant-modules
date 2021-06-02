@@ -236,7 +236,7 @@ import os.path
 import copy
 from deepdiff import DeepDiff # import json
 # from deepdiff.model import DiffLevel # import json
-# from pprint import pprint
+from pprint import pprint
 # import ast
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
@@ -248,10 +248,12 @@ class VagrantConfig(object):
 
     def __init__(self, *args, **kwargs):
         '''
-        Wrapper around the python-vagrant module for use with ansible.
+        Bridge between https://github.com/bertvv/ansible-skeleton and Ansible
         '''
         self.module = kwargs.setdefault('module', None)
         self.root = kwargs.setdefault('root', '.')
+        self.parameters_requiring_recreate = ['box', 'box_path', 'provider', 'playbook', 'shell_always']
+        # for libvirt https://github.com/vagrant-libvirt/vagrant-libvirt#reload-behavior
 
     def turn_present_in_config(self, name, new_config, new_groups):
         found = False
@@ -278,23 +280,32 @@ class VagrantConfig(object):
                         # if we need a reload or a detsroy
                         found = True
                         new_config['name'] = existing_host['name']
+                        updated_config.append(new_config)
+
+                        # Defining the needs due to the config changes
                         diff = DeepDiff(existing_host, new_config)
 
-                        # box_name changes
-                        if (('values_changed' in diff and "root['box_name']" in diff['values_changed'].keys())
-                                or ('dictionary_item_added' in diff and "root['box_name']" in diff['dictionary_item_added'])
-                                or ('dictionary_item_removed' in diff and "root['box_name']" in diff['dictionary_item_removed'])
-                                ):
-                            needs.append('destroy', 'up')
-                        # ports changes
-                        elif (('values_changed' in diff and "root['forwarded_ports']" in diff['values_changed'].keys())
-                                or ('dictionary_item_added' in diff and "root['forwarded_ports']" in diff['dictionary_item_added'])
-                                or ('dictionary_item_removed' in diff and "root['forwarded_ports']" in diff['dictionary_item_removed'])
-                                ):
-                            needs.append('reload')
+                        # if no diff, no need, no change
+                        if diff == {}:
+                            continue
 
-                        # replace the old config by the new one
-                        updated_config.append(new_config)
+                        # changes requiring recreate
+                        # TODO would depend on the provider
+                        # TODO handle parameters which are not at root
+                        for parameter in self.parameters_requiring_recreate:
+                            parameter_path = "root['" + parameter + "']"
+                            if (('values_changed' in diff and parameter_path in diff['values_changed'].keys())
+                                    or ('dictionary_item_added' in diff and parameter_path in diff['dictionary_item_added'])
+                                    or ('dictionary_item_removed' in diff and parameter_path in diff['dictionary_item_removed'])
+                                    ):
+                                needs.append('destroy')
+                                needs.append('up')
+
+                        # TODO changes compared to the current status instead of the current config
+                        # ports, ssh private_key from ssh-config, provider from status
+
+                        if len(needs) == 0:
+                            needs.append('reload')  # vagrant reload --provision? For now provisioning change requires recreate
 
             if not found:  # add the new vm to the config
                 new_config['name'] = name

@@ -138,7 +138,7 @@
   #  - never
   #  - debug
 
-# add new on an already existing config file
+# Case: add new on an already existing config file
 - name: Add new vm on an already existing  Vagrantfile
   jclaveau.vagrant.config:
   args:
@@ -151,18 +151,9 @@
 - name: dbg results
   ansible.builtin.debug:
     msg: "{{ vagrant_config_add_results }}"
-  # tags:
-  #  - never
-  #  - debug
-
-# - name: dbg host file
-#   ansible.builtin.debug:
-#     msg: "{{ item }}"
-#   with_file:
-#     - ./vagrant-hosts.yml
-  # tags:
-  #  - never
-  #  - debug
+  tags:
+   - never
+   - debug
 
 - name: Vagrant config should succeed
   assert:
@@ -233,7 +224,7 @@
   with_file:
     - ./vagrant-hosts.yml
 
-# remove one box => need_destroy
+# Case: remove one box => need_destroy
 - name: Remove srv002
   jclaveau.vagrant.config:
   args:
@@ -363,3 +354,194 @@
       - "{{ vagrant_config_dump_results.vms[0] }} ==  {{ expected_dump_content }} "
   tags:
    - dump
+
+# Case: update a vm config with no change
+- name: Update srv003 generating no change
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    name: "srv003"
+    config:
+      box: debian/buster64
+  register: vagrant_config_update_results
+
+- name: dbg results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_update_results }}"
+  # tags:
+  #  - never
+  #  - debug
+
+- name: Vagrant config update should succeed
+  assert:
+    that:
+      - vagrant_config_update_results is success
+      - vagrant_config_update_results is not changed
+      - vagrant_config_update_results.vms.needs == []
+
+- name: Register expected vagrant-hosts.yml content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_vagrant_hosts_content:
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: '8080'
+        - guest: 443
+          host: '8043'
+        ip: 172.20.0.0
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv001
+        netmask: 255.255.0.0
+        synced_folders:
+        - dest: /tmp/srv001
+          src: /tmp
+        - dest: /tmp/srv001/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster64
+        name: srv003
+
+- name: vagrant-hosts.yml should contain
+  assert:
+    that:
+      - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+  with_file:
+    - ./vagrant-hosts.yml
+
+# Case: update a vm config requiring reloading the vm
+- name: Update srv003 requiring reloading the vm
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    name: "srv003"
+    config:
+      box: debian/buster64
+      cpus: 3
+  register: vagrant_config_update_results
+
+- name: dbg results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_update_results }}"
+  # tags:
+  #  - never
+  #  - debug
+
+- name: Vagrant config update should succeed
+  assert:
+    that:
+      - vagrant_config_update_results is success
+      - vagrant_config_update_results is changed
+      - vagrant_config_update_results.vms.needs == ['reload']
+
+- name: Register expected vagrant-hosts.yml content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_vagrant_hosts_content:
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: '8080'
+        - guest: 443
+          host: '8043'
+        ip: 172.20.0.0
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv001
+        netmask: 255.255.0.0
+        synced_folders:
+        - dest: /tmp/srv001
+          src: /tmp
+        - dest: /tmp/srv001/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster64
+        cpus: 3
+        name: srv003
+
+- name: vagrant-hosts.yml should contain
+  assert:
+    that:
+      - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+  with_file:
+    - ./vagrant-hosts.yml
+
+# Case: update a vm config requiring recreating the vm
+- name: Update srv003 requiring recreation
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    name: "srv003"
+    config:
+      box: debian/buster32
+      cpus: 1
+  register: vagrant_config_update_results
+
+- name: dbg results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_update_results }}"
+  # tags:
+  #  - never
+  #  - debug
+
+- name: Vagrant config update should succeed
+  assert:
+    that:
+      - vagrant_config_update_results is success
+      - vagrant_config_update_results is changed
+      - vagrant_config_update_results.vms.needs == ['destroy', 'up']
+
+- name: Register expected vagrant-hosts.yml content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_vagrant_hosts_content:
+      - box: debian/buster64
+        cpus: 2
+        forwarded_ports:
+        - guest: 80
+          host: '8080'
+        - guest: 443
+          host: '8043'
+        ip: 172.20.0.0
+        mac: 13:37:de:ad:be:ef
+        memory: 2048
+        name: srv001
+        netmask: 255.255.0.0
+        synced_folders:
+        - dest: /tmp/srv001
+          src: /tmp
+        - dest: /tmp/srv001/www/html
+          options:
+            :create: true
+            :group: root
+            :mount_options:
+            - dmode=0755
+            - fmode=0644
+            :owner: root
+          src: /var/www
+      - box: debian/buster32
+        cpus: 1
+        name: srv003
+
+- name: vagrant-hosts.yml should contain
+  assert:
+    that:
+      - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+  with_file:
+    - ./vagrant-hosts.yml
+
