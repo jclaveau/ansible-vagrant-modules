@@ -295,65 +295,15 @@
   with_file:
     - ./vagrant-hosts.yml
 
-# Dump the config
-- name: Dump srv003
-  jclaveau.vagrant.config:
-  args:
-    name: "srv001"
-    # config:
-    #   box: debian/buster64
-  register: vagrant_config_dump_results
-  tags:
-   - dump
 
-- name: dbg dump results
-  ansible.builtin.debug:
-    msg: "{{ vagrant_config_dump_results }}"
+# dump (if no state defined)
+- include_tasks:
+    file: dump_test.yml
+    apply:
+      tags:
+        - dump
   tags:
-   - never
-   - debug
-   - dump
-
-- name: Register expected dump content
-  no_log: true
-  ansible.builtin.set_fact:
-    expected_dump_content:
-      box: debian/buster64
-      cpus: 2
-      forwarded_ports:
-      - guest: 80
-        host: '8080'
-      - guest: 443
-        host: '8043'
-      ip: 172.20.0.0
-      mac: 13:37:de:ad:be:ef
-      memory: 2048
-      name: srv001
-      netmask: 255.255.0.0
-      synced_folders:
-      - dest: /tmp/srv001
-        src: /tmp
-      - dest: /tmp/srv001/www/html
-        options:
-          :create: true
-          :group: root
-          :mount_options:
-          - dmode=0755
-          - fmode=0644
-          :owner: root
-        src: /var/www
-  tags:
-   - dump
-
-
-- name: Vagrant config should succeed
-  assert:
-    that:
-      - vagrant_config_dump_results is success
-      - vagrant_config_dump_results is not changed
-      - "{{ vagrant_config_dump_results.vms[0] }} ==  {{ expected_dump_content }} "
-  tags:
-   - dump
+    - dump
 
 # Case: update a vm config with no change
 - name: Update srv003 generating no change

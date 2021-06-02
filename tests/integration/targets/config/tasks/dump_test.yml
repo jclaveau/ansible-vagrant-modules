@@ -1,0 +1,180 @@
+# Dump the config of all vms
+- name: Dump all vms
+  jclaveau.vagrant.config:
+  args:
+  register: vagrant_config_dump_results
+
+- name: dbg dump results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_dump_results }}"
+  tags:
+   - never
+   - debug
+
+- name: Register expected dump content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_dump_vm0:
+      box: debian/buster64
+      cpus: 2
+      forwarded_ports:
+      - guest: 80
+        host: '8080'
+      - guest: 443
+        host: '8043'
+      ip: 172.20.0.0
+      mac: 13:37:de:ad:be:ef
+      memory: 2048
+      name: srv001
+      netmask: 255.255.0.0
+      synced_folders:
+      - dest: /tmp/srv001
+        src: /tmp
+      - dest: /tmp/srv001/www/html
+        options:
+          :create: true
+          :group: root
+          :mount_options:
+          - dmode=0755
+          - fmode=0644
+          :owner: root
+        src: /var/www
+
+- name: Register expected dump content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_dump_vm1:
+      box: debian/buster64
+      name: srv003
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_dump_results is success
+      - vagrant_config_dump_results is not changed
+      - vagrant_config_dump_results.vms | count == 2
+      - "{{ vagrant_config_dump_results.vms[0] }} ==  {{ expected_dump_vm0 }} "
+      - "{{ vagrant_config_dump_results.vms[1] }} ==  {{ expected_dump_vm1 }} "
+
+# - name: dbg host file
+#   ansible.builtin.debug:
+#     msg: "{{ item }}"
+#   with_file:
+#     - ./vagrant-hosts.yml
+  # tags:
+  #  - never
+  #  - debug
+
+# Dump the config of a vm by its name
+- name: Dump srv003
+  jclaveau.vagrant.config:
+  args:
+    name: "srv001"
+  register: vagrant_config_dump_results
+
+- name: dbg dump results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_dump_results }}"
+  tags:
+   - never
+   - debug
+
+- name: Register expected dump content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_dump_content:
+      box: debian/buster64
+      cpus: 2
+      forwarded_ports:
+      - guest: 80
+        host: '8080'
+      - guest: 443
+        host: '8043'
+      ip: 172.20.0.0
+      mac: 13:37:de:ad:be:ef
+      memory: 2048
+      name: srv001
+      netmask: 255.255.0.0
+      synced_folders:
+      - dest: /tmp/srv001
+        src: /tmp
+      - dest: /tmp/srv001/www/html
+        options:
+          :create: true
+          :group: root
+          :mount_options:
+          - dmode=0755
+          - fmode=0644
+          :owner: root
+        src: /var/www
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_dump_results is success
+      - vagrant_config_dump_results is not changed
+      - vagrant_config_dump_results.vms | count == 1
+      - "{{ vagrant_config_dump_results.vms[0] }} ==  {{ expected_dump_content }} "
+
+
+# Dump the config of a vm by its config
+- name: Dump srv003
+  jclaveau.vagrant.config:
+  args:
+    config:
+      cpus: 2
+  register: vagrant_config_dump_results
+
+- name: dbg dump results
+  ansible.builtin.debug:
+    msg: "{{ vagrant_config_dump_results }}"
+  tags:
+   - never
+   - debug
+
+- name: Register expected dump content
+  no_log: true
+  ansible.builtin.set_fact:
+    expected_dump_vm0:
+      box: debian/buster64
+      cpus: 2
+      forwarded_ports:
+      - guest: 80
+        host: '8080'
+      - guest: 443
+        host: '8043'
+      ip: 172.20.0.0
+      mac: 13:37:de:ad:be:ef
+      memory: 2048
+      name: srv001
+      netmask: 255.255.0.0
+      synced_folders:
+      - dest: /tmp/srv001
+        src: /tmp
+      - dest: /tmp/srv001/www/html
+        options:
+          :create: true
+          :group: root
+          :mount_options:
+          - dmode=0755
+          - fmode=0644
+          :owner: root
+        src: /var/www
+
+- name: Vagrant config should succeed
+  assert:
+    that:
+      - vagrant_config_dump_results is success
+      - vagrant_config_dump_results is not changed
+      - vagrant_config_dump_results.vms | count == 1
+      - "{{ vagrant_config_dump_results.vms[0] }} ==  {{ expected_dump_vm0 }} "
+
+- name: dbg host file
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  with_file:
+    - ./vagrant-hosts.yml
+  tags:
+   - never
+   - debug
+

@@ -379,7 +379,7 @@ class VagrantConfig(object):
             with open(self.root + "/Vagrantfile", 'w') as stream:
                 stream.write(VAGRANT_FILE)
 
-    def dump(self, name=None):
+    def dump(self, name=None, config_filter=None):
         out = []
         with open(self.root + "/vagrant-hosts.yml", 'r') as stream:
             try:
@@ -389,9 +389,14 @@ class VagrantConfig(object):
 
             if existing_config is not None:
                 for existing_host in existing_config:
-                    if name is None or name == existing_host['name']:
-                        out.append(existing_host)
-        # print(out)
+                    if name is not None and name != existing_host['name']:
+                        continue
+                    if config_filter is not None:
+                        diff = DeepDiff(existing_host, config_filter)
+                        if 'values_changed' in diff or 'dictionary_item_added' in diff:
+                            continue
+                    out.append(existing_host)
+
         return out
 
 # --------
@@ -443,7 +448,7 @@ def main():
         module.exit_json(changed=changed, vms=results)
 
     elif state is None:
-        results = config.dump(name=name)
+        results = config.dump(name=name, config_filter=config_param)
         module.exit_json(changed=False, vms=results)
 
     module.exit_json(status="success")
