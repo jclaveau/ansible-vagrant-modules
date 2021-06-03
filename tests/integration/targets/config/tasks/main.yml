@@ -24,7 +24,7 @@
     state: "present"
     name: "{{ item }}"
     config:
-      box: debian/buster64
+      box: boxomatic/debian-11 # contains vbox additions required by synced folders with VirtualBox
       memory: 2048
       cpus: 2
       ip: "192.168.10.{{ i }}"
@@ -73,7 +73,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_vagrant_hosts_content:
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -97,7 +97,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -145,7 +145,7 @@
     state: "present"
     name: "srv003"
     config:
-      box: debian/buster64
+      box: boxomatic/debian-11
   register: vagrant_config_add_results
 
 - name: dbg results
@@ -166,7 +166,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_vagrant_hosts_content:
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -190,7 +190,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -214,7 +214,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         name: srv003
 
 - name: vagrant-hosts.yml should contain
@@ -231,7 +231,7 @@
     state: "absent"
     name: "{{ item }}"
     config:
-      box: debian/buster64
+      box: boxomatic/debian-11
   register: vagrant_config_absent_results
   tags:
    - destroy
@@ -261,7 +261,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_vagrant_hosts_content:
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -285,7 +285,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         name: srv003
 
 - name: vagrant-hosts.yml should contain
@@ -312,7 +312,7 @@
     state: "present"
     name: "srv003"
     config:
-      box: debian/buster64
+      box: boxomatic/debian-11
   register: vagrant_config_update_results
 
 - name: dbg results
@@ -333,7 +333,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_vagrant_hosts_content:
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -357,7 +357,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         name: srv003
 
 - name: vagrant-hosts.yml should contain
@@ -374,7 +374,7 @@
     state: "present"
     name: "srv003"
     config:
-      box: debian/buster64
+      box: boxomatic/debian-11
       cpus: 3
   register: vagrant_config_update_results
 
@@ -396,7 +396,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_vagrant_hosts_content:
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -420,7 +420,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 3
         name: srv003
 
@@ -438,7 +438,7 @@
     state: "present"
     name: "srv003"
     config:
-      box: debian/jessie64
+      box: boxomatic/debian-9
       cpus: 1
   register: vagrant_config_update_results
 
@@ -460,7 +460,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_vagrant_hosts_content:
-      - box: debian/buster64
+      - box: boxomatic/debian-11
         cpus: 2
         forwarded_ports:
         - guest: 80
@@ -484,7 +484,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/jessie64
+      - box: boxomatic/debian-9
         cpus: 1
         name: srv003
 

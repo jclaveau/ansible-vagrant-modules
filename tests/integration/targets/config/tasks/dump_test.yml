@@ -15,7 +15,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_dump_vm0:
-      box: debian/buster64
+      box: boxomatic/debian-11
       cpus: 2
       forwarded_ports:
       - guest: 80
@@ -44,7 +44,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_dump_vm1:
-      box: debian/buster64
+      box: boxomatic/debian-11
       name: srv003
 
 - name: Vagrant config should succeed
@@ -83,7 +83,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_dump_content:
-      box: debian/buster64
+      box: boxomatic/debian-11
       cpus: 2
       forwarded_ports:
       - guest: 80
@@ -136,7 +136,7 @@
   no_log: true
   ansible.builtin.set_fact:
     expected_dump_vm0:
-      box: debian/buster64
+      box: boxomatic/debian-11
       cpus: 2
       forwarded_ports:
       - guest: 80
