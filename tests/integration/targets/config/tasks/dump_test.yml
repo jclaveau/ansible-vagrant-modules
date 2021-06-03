@@ -22,11 +22,11 @@
         host: '8080'
       - guest: 443
         host: '8043'
-      ip: 172.20.0.0
+      ip: 192.168.10.0
       mac: 13:37:de:ad:be:ef
       memory: 2048
       name: srv001
-      netmask: 255.255.0.0
+      netmask: 255.255.255.0
       synced_folders:
       - dest: /tmp/srv001
         src: /tmp
@@ -90,11 +90,11 @@
         host: '8080'
       - guest: 443
         host: '8043'
-      ip: 172.20.0.0
+      ip: 192.168.10.0
       mac: 13:37:de:ad:be:ef
       memory: 2048
       name: srv001
-      netmask: 255.255.0.0
+      netmask: 255.255.255.0
       synced_folders:
       - dest: /tmp/srv001
         src: /tmp
@@ -143,11 +143,11 @@
         host: '8080'
       - guest: 443
         host: '8043'
-      ip: 172.20.0.0
+      ip: 192.168.10.0
       mac: 13:37:de:ad:be:ef
       memory: 2048
       name: srv001
-      netmask: 255.255.0.0
+      netmask: 255.255.255.0
       synced_folders:
       - dest: /tmp/srv001
         src: /tmp
