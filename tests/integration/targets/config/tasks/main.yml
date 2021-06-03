@@ -438,7 +438,7 @@
     state: "present"
     name: "srv003"
     config:
-      box: debian/buster32
+      box: debian/jessie64
       cpus: 1
   register: vagrant_config_update_results
 
@@ -484,7 +484,7 @@
             - fmode=0644
             :owner: root
           src: /var/www
-      - box: debian/buster32
+      - box: debian/jessie64
         cpus: 1
         name: srv003
 
