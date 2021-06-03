@@ -29,7 +29,7 @@
       cpus: 2
       ip: "192.168.10.{{ i }}"
       netmask: 255.255.255.0
-      mac: '13:37:de:ad:be:ef'
+      mac: '00:50:56:3a:2d:1c'
       # playbook: "{ item }.yml"
       forwarded_ports:
         - host: "808{{ i }}"
@@ -81,7 +81,7 @@
         - guest: 443
           host: '8043'
         ip: 192.168.10.0
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv001
         netmask: 255.255.255.0
@@ -105,7 +105,7 @@
         - guest: 443
           host: '8143'
         ip: 192.168.10.1
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv002
         netmask: 255.255.255.0
@@ -174,7 +174,7 @@
         - guest: 443
           host: '8043'
         ip: 192.168.10.0
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv001
         netmask: 255.255.255.0
@@ -198,7 +198,7 @@
         - guest: 443
           host: '8143'
         ip: 192.168.10.1
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv002
         netmask: 255.255.255.0
@@ -269,7 +269,7 @@
         - guest: 443
           host: '8043'
         ip: 192.168.10.0
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv001
         netmask: 255.255.255.0
@@ -341,7 +341,7 @@
         - guest: 443
           host: '8043'
         ip: 192.168.10.0
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv001
         netmask: 255.255.255.0
@@ -404,7 +404,7 @@
         - guest: 443
           host: '8043'
         ip: 192.168.10.0
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv001
         netmask: 255.255.255.0
@@ -468,7 +468,7 @@
         - guest: 443
           host: '8043'
         ip: 192.168.10.0
-        mac: 13:37:de:ad:be:ef
+        mac: 00:50:56:3a:2d:1c
         memory: 2048
         name: srv001
         netmask: 255.255.255.0
