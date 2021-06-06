@@ -1,0 +1,37 @@
+
+- name: List existing vms
+  jclaveau.vagrant.status:
+  register: vagrant_existing_machines
+
+# - name: dbg up results
+#   ansible.builtin.debug:
+#     var: vagrant_existing_machines.vms
+
+- name: Destroy them
+  jclaveau.vagrant.destroy:
+  args:
+    name: "{{ item.name }}"
+  loop: "{{ vagrant_existing_machines.vms }}"
+  async: 45
+  poll: 0
+  register: async_loop
+
+# - name: dbg up results
+#   ansible.builtin.debug:
+#     var: async_loop
+
+- name: wait for destroy to finish
+  async_status:
+    jid: "{{item.ansible_job_id}}"
+    mode: status
+  retries: 45
+  delay: 1
+  loop: "{{async_loop.results}}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+
+- name: dbg up results
+  ansible.builtin.debug:
+    var: async_loop_jobs
+
+# - fail:

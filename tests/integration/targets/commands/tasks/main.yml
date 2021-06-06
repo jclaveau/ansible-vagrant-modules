@@ -1,0 +1,49 @@
+---
+# 1: clean existing
+- include_tasks:
+    file: 0_clean_existing.yml
+    apply:
+      tags:
+        - clean_existing
+  tags:
+    - always
+
+# 2: config
+- name: Add two vms to the Vagrantfile
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    name: "{{ item }}"
+    config:
+      box: debian/buster64
+      # box: boxomatic/alpine-3.13
+      # box: generic/alpine38
+      cpus: 4
+    # log: true
+  register: vagrant_config_results
+  loop:
+    - "srv001"
+    - "srv002"
+
+# 3: up
+- include_tasks:
+    file: 1_up_test.yml
+    apply:
+      tags:
+        - clean_existing
+  tags:
+    - always
+
+- name: stop
+  ansible.builtin.fail:
+
+
+# status not empty
+# ports
+# ssh_config
+# connect
+# suspend
+# resume
+# halt
+# destroy
+# clean config
