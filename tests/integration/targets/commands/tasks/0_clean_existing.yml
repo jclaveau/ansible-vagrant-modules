@@ -11,7 +11,7 @@
   jclaveau.vagrant.destroy:
   args:
     name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.vms }}"
+  loop: "{{ vagrant_existing_machines.statuses }}"
   async: 45
   poll: 0
   register: async_loop

@@ -17,9 +17,9 @@ Usage: vagrant status [name|id]
 DOCUMENTATION = '''
 ---
 module: jclaveau.vagrant.status
-short_description: vagrant status for Ansible
+short_description: vagrant up for one vm or all vms
 description:
-     - vagrant up for Ansible
+     - vagrant up for one vm or all vms
 version_added: "0.0.1"
 author:
     - "Jean Claveau (@jclaveau)"
@@ -44,10 +44,6 @@ EXAMPLES = '''
     name: vm_name
 '''
 
-import sys
-import subprocess
-import os.path
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
@@ -64,7 +60,6 @@ def main():
         argument_spec=dict(
             vagrant_root=dict(default=DEFAULT_ROOT),
             name=dict(type='str'),
-            force=dict(default=False, type='bool'),
         )
     )
 
@@ -76,19 +71,17 @@ def main():
         root_path=vagrant_root,
     )
 
-    (changed, statuses) = vgw.status(
+    (changed, duration, statuses) = vgw.status(
         name=name
     )
 
-    stdout_lines = []
-    for line in vgw.stdout():
-        stdout_lines.append(line)
-
-    stderr_lines = []
-    for line in vgw.stderr():
-        stderr_lines.append(line)
-
-    module.exit_json(changed=changed, vms=statuses, stdout_lines=stdout_lines, stderr_lines=stderr_lines)
+    module.exit_json(
+      changed=changed,
+      duration=duration,
+      statuses=statuses,
+      stdout_lines=list(vgw.stdout()),
+      stderr_lines=list(vgw.stderr())
+    )
 
 
 main()

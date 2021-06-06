@@ -1,0 +1,48 @@
+# Case 0: with no vm name
+- name: Retrieve de statuses of all vms
+  jclaveau.vagrant.status:
+  register: status_result
+
+- name: dbg status_result
+  ansible.builtin.debug:
+    var: status_result
+
+- name: Vagrant status should succeed
+  assert:
+    that:
+      - status_result is success
+      - status_result is not changed
+      - status_result.stdout_lines == []
+      - status_result.stderr_lines == []
+      - status_result.duration > 0
+      - status_result.statuses | count == 2
+      - status_result.statuses[0].name == "srv001"
+      - status_result.statuses[0].state == "running"
+      - status_result.statuses[0].provider == "virtualbox"
+      - status_result.statuses[1].name == "srv002"
+      - status_result.statuses[1].state == "running"
+      - status_result.statuses[1].provider == "virtualbox"
+
+# Case 0: with vm name
+- name: Retrieve de status of srv002
+  jclaveau.vagrant.status:
+  args:
+    name: srv002
+  register: status_result
+
+- name: dbg status_result
+  ansible.builtin.debug:
+    var: status_result
+
+- name: Vagrant status should succeed
+  assert:
+    that:
+      - status_result is success
+      - status_result is not changed
+      - status_result.stdout_lines == []
+      - status_result.stderr_lines == []
+      - status_result.duration > 0
+      - status_result.statuses | count == 1
+      - status_result.statuses[0].name == "srv002"
+      - status_result.statuses[0].state == "running"
+      - status_result.statuses[0].provider == "virtualbox"

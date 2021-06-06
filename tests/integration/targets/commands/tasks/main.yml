@@ -1,14 +1,14 @@
 ---
-# 1: clean existing
+# 0: clean existing
 - include_tasks:
     file: 0_clean_existing.yml
     apply:
       tags:
         - clean_existing
   tags:
-    - always
+    - clean_existing
 
-# 2: config
+# config
 - name: Add two vms to the Vagrantfile
   jclaveau.vagrant.config:
   args:
@@ -25,20 +25,28 @@
     - "srv001"
     - "srv002"
 
-# 3: up
+# 1: up
 - include_tasks:
     file: 1_up_test.yml
     apply:
       tags:
-        - clean_existing
+        - up
   tags:
-    - always
+    # - always
+    - up
+
+# 2: status
+- include_tasks:
+    file: 2_status_test.yml
+    apply:
+      tags:
+        - status
+  tags:
+    - status
 
 - name: stop
   ansible.builtin.fail:
 
-
-# status not empty
 # ports
 # ssh_config
 # connect

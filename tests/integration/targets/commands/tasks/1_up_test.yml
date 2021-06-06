@@ -42,5 +42,3 @@
       - async_loop_jobs.results[1].status_after == "running"
       - '"==> srv001: Booting VM..." in async_loop_jobs.results[0].stdout_lines'
       - '"==> srv002: Booting VM..." in async_loop_jobs.results[1].stdout_lines'
-
-- fail:
