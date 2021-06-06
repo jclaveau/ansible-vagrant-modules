@@ -1,0 +1,77 @@
+# Case 0: without name
+- name: Retrieve the ports of no machine
+  jclaveau.vagrant.port:
+  register: port_result
+  ignore_errors: true
+
+- name: dbg port_result
+  ansible.builtin.debug:
+    var: port_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant port should fail
+  assert:
+    that:
+      - port_result is failed
+      - port_result is not changed
+      - '"Vagrant::Errors::MultiVMTargetRequired: This command requires a specific VM name to target in a multi-VM environment." in port_result.stderr_lines'
+
+# Case 1: without guest
+- name: Retrieve the ports of srv002
+  jclaveau.vagrant.port:
+  args:
+    name: srv002
+  register: port_result
+
+- name: dbg port_result
+  ansible.builtin.debug:
+    var: port_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant port should succeed
+  assert:
+    that:
+      - port_result is success
+      - port_result is not changed
+      - port_result.stdout_lines == []
+      - port_result.stderr_lines == []
+      - port_result.duration > 0
+      - port_result.ports | count == 3
+      - port_result.ports[0].guest == 22
+      - port_result.ports[0].host == 2201
+      - port_result.ports[1].guest == 80
+      - port_result.ports[1].host == 8081
+      - port_result.ports[2].guest == 443
+      - port_result.ports[2].host == 8143
+
+# Case 1: with guest
+- name: Retrieve the port of srv002 corresponding to its 443
+  jclaveau.vagrant.port:
+  args:
+    name: srv002
+    guest: 443
+  register: port_result
+
+- name: dbg port_result
+  ansible.builtin.debug:
+    var: port_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant port should succeed
+  assert:
+    that:
+      - port_result is success
+      - port_result is not changed
+      - port_result.stdout_lines == []
+      - port_result.stderr_lines == []
+      - port_result.duration > 0
+      - port_result.ports | count == 1
+      - port_result.ports[0].guest == 443
+      - port_result.ports[0].host == 8143
+

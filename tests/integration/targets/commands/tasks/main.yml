@@ -19,11 +19,18 @@
       # box: boxomatic/alpine-3.13
       # box: generic/alpine38
       cpus: 4
+      forwarded_ports:
+        - host: "808{{ i }}"
+          guest: 80
+        - host: "8{{ i }}43"
+          guest: 443
     # log: true
   register: vagrant_config_results
   loop:
     - "srv001"
     - "srv002"
+  loop_control:
+    index_var: "i"
 
 # 1: up
 - include_tasks:
@@ -43,6 +50,15 @@
         - status
   tags:
     - status
+
+# 3: port
+- include_tasks:
+    file: 3_port_test.yml
+    apply:
+      tags:
+        - port
+  tags:
+    - port
 
 - name: stop
   ansible.builtin.fail:

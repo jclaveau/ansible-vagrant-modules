@@ -105,9 +105,41 @@ class VagrantWrapper(object):
         return out
 
     def status(self, name=None):
+        start = time.time()
         changed = False
         statuses = self.raw_statuses(name, must_be_present=True)
-        return (changed, list(statuses.values()))
+        end = round(time.time(), 2)
+        return (changed,  end - start, list(statuses.values()))
+
+    def port(self, name=None, guest=None):
+        start = time.time()
+        changed = False
+
+        try:
+            output = self.vg._run_vagrant_command([
+                'port',
+                name,
+                '--machine-readable'
+            ])
+
+            output = self.vg._parse_machine_readable_output(output)
+            ports = []
+            for line in output:
+                if guest and guest != int(line[3]):
+                    continue
+                ports.append({
+                    'guest': int(line[3]),
+                    'host': int(line[4]),
+                })
+        except subprocess.CalledProcessError as e:
+            output = self.vg._parse_machine_readable_output(e.stdout.decode('utf-8'))
+            stderr = output[0][3] + ": " + output[0][4]
+            with open(self.stderr_filename, 'a') as f:
+                f.write(stderr)
+            self.fail_module(e)
+
+        end = round(time.time(), 2)
+        return (changed,  end - start, ports)
 
     def up(self, name=None, no_provision=False, provider=None,
            provision=None, provision_with=None, parallel=False):
