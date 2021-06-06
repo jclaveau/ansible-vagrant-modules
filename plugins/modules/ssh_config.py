@@ -10,16 +10,20 @@ __metaclass__ = type
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/metaclass-boilerplate.html
 
 MAN = '''
-Usage: vagrant status [name|id]
+Usage: vagrant ssh-config [options] [name|id]
+
+Options:
+
+        --host NAME                  Name the host for the config
     -h, --help                       Print this help
 '''
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.status
+module: jclaveau.vagrant.ssh_config
 short_description: vagrant up for one vm or all vms
 description:
-     - vagrant status for one vm or all vms
+     - vagrant ssh-config for one vm or all vms
 version_added: "0.0.1"
 author:
     - "Jean Claveau (@jclaveau)"
@@ -40,7 +44,7 @@ requirements: ["vagrant"]
 
 EXAMPLES = '''
 - name: Spawn a new VM instance
-  jclaveau.vagrant.status:
+  jclaveau.vagrant.ssh_config:
     name: vm_name
 '''
 
@@ -71,14 +75,14 @@ def main():
         root_path=vagrant_root,
     )
 
-    (changed, duration, statuses) = vgw.status(
+    (changed, duration, ssh_configs) = vgw.ssh_config(
         name=name
     )
 
     module.exit_json(
       changed=changed,
       duration=duration,
-      statuses=statuses,
+      ssh_configs=ssh_configs,
       stdout_lines=list(vgw.stdout()),
       stderr_lines=list(vgw.stderr())
     )

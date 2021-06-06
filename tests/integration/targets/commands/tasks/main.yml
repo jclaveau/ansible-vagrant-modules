@@ -60,11 +60,18 @@
   tags:
     - port
 
+# 4: ssh-config
+- include_tasks:
+    file: 4_ssh_config_test.yml
+    apply:
+      tags:
+        - ssh
+  tags:
+    - ssh
+
 - name: stop
   ansible.builtin.fail:
 
-# ports
-# ssh_config
 # connect
 # suspend
 # resume

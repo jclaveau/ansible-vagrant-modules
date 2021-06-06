@@ -141,6 +141,38 @@ class VagrantWrapper(object):
         end = round(time.time(), 2)
         return (changed,  end - start, ports)
 
+    def ssh_config(self, name):
+        start = time.time()
+        changed = False
+
+        ssh_configs = []
+        try:
+            outputs = self.vg.ssh_config(name).strip().split("\n\n")
+            for output in outputs:
+                config = self.vg.conf(output)
+
+                #   "-o NoHostAuthenticationForLocalhost=%s "
+                sshcmd = ("ssh %s@%s -p %s -i %s "
+                          "-o StrictHostKeyChecking=%s "
+                          "-o UserKnownHostsFile=%s "
+                          "-o IdentitiesOnly=%s"
+                          ) % (
+                              config["User"],
+                              config["HostName"],
+                              config["Port"],
+                              config["IdentityFile"],
+                              config["StrictHostKeyChecking"],
+                              config["UserKnownHostsFile"],
+                              config["IdentitiesOnly"])
+                config['command'] = sshcmd
+                ssh_configs.append(config)
+
+        except subprocess.CalledProcessError as e:
+            self.fail_module(e)
+
+        end = round(time.time(), 2)
+        return (changed,  end - start, ssh_configs)
+
     def up(self, name=None, no_provision=False, provider=None,
            provision=None, provision_with=None, parallel=False):
         """
