@@ -1,0 +1,166 @@
+# Case 0: missing name parameter
+- name: halt them
+  jclaveau.vagrant.halt:
+  register: halt_result
+  ignore_errors: true
+
+- name: dbg halt_result
+  ansible.builtin.debug:
+    var: halt_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant halt should fail
+  assert:
+    that:
+      - halt_result is failed
+      - halt_result is not changed
+      - "halt_result.msg == 'missing required arguments: name'"
+
+# Case 1: halting a non existing vm
+- name: halt them
+  jclaveau.vagrant.halt:
+  args:
+    name: "i_do_not_exist"
+  register: halt_result
+  ignore_errors: true
+
+- name: dbg halt_result
+  ansible.builtin.debug:
+    var: halt_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant halt should fail
+  assert:
+    that:
+      - halt_result is failed
+      - halt_result is not changed
+      - >
+        "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in halt_result.stderr_lines
+
+# Case 2: halting the two vms
+- name: List existing vms
+  jclaveau.vagrant.status:
+  register: vagrant_existing_machines
+
+- name: dbg vagrant_existing_machines
+  ansible.builtin.debug:
+    var: vagrant_existing_machines.statuses
+  tags:
+   - never
+   - debug
+
+- name: halt them
+  jclaveau.vagrant.halt:
+  args:
+    name: "{{ item.name }}"
+  loop: "{{ vagrant_existing_machines.statuses }}"
+  async: 45
+  poll: 0
+  register: async_loop
+
+- name: dbg async_loop results
+  ansible.builtin.debug:
+    var: async_loop
+  tags:
+   - never
+   - debug
+
+- name: wait for halt to finish
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+    mode: status
+  retries: 45
+  delay: 1
+  loop: "{{ async_loop.results }}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+
+- name: dbg async_loop_jobs results
+  ansible.builtin.debug:
+    var: async_loop_jobs
+  tags:
+   - never
+   - debug
+
+- name: Vagrant halt should succeed
+  assert:
+    that:
+      - async_loop_jobs is success
+      - async_loop_jobs is changed
+
+      - async_loop_jobs.results[0] is success
+      - async_loop_jobs.results[0] is changed
+      - async_loop_jobs.results[0].duration > 0
+      - async_loop_jobs.results[0].status_before == "running"
+      - async_loop_jobs.results[0].status_after == "poweroff"
+      - '"==> srv001: Attempting graceful shutdown of VM..." in async_loop_jobs.results[0].stdout_lines'
+      - async_loop_jobs.results[0].stderr_lines == []
+
+      - async_loop_jobs.results[1] is success
+      - async_loop_jobs.results[1] is changed
+      - async_loop_jobs.results[1].duration > 0
+      - async_loop_jobs.results[1].status_before == "running"
+      - async_loop_jobs.results[1].status_after == "poweroff"
+      - '"==> srv002: Attempting graceful shutdown of VM..." in async_loop_jobs.results[1].stdout_lines'
+      - async_loop_jobs.results[1].stderr_lines == []
+
+# Case 3: idempotence
+- name: re-halt them
+  jclaveau.vagrant.halt:
+  args:
+    name: "{{ item.name }}"
+  loop: "{{ vagrant_existing_machines.statuses }}"
+  async: 45
+  poll: 0
+  register: async_loop
+
+- name: dbg async_loop for re-halt
+  ansible.builtin.debug:
+    var: async_loop
+  tags:
+   - never
+   - debug
+
+- name: wait for re-halt to finish
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+    mode: status
+  retries: 45
+  delay: 1
+  loop: "{{ async_loop.results }}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+
+- name: dbg async_loop_jobs for re-halt
+  ansible.builtin.debug:
+    var: async_loop_jobs
+  tags:
+   - never
+   - debug
+
+- name: Vagrant re-halt should succeed
+  assert:
+    that:
+      - async_loop_jobs is success
+      - async_loop_jobs is not changed
+
+      - async_loop_jobs.results[0] is success
+      - async_loop_jobs.results[0] is not changed
+      - async_loop_jobs.results[0].duration > 0
+      - async_loop_jobs.results[0].status_before == "poweroff"
+      - async_loop_jobs.results[0].status_after == "poweroff"
+      - async_loop_jobs.results[0].stderr_lines == []
+      - async_loop_jobs.results[0].stdout_lines == []
+
+      - async_loop_jobs.results[1] is success
+      - async_loop_jobs.results[1] is not changed
+      - async_loop_jobs.results[1].duration > 0
+      - async_loop_jobs.results[1].status_before == "poweroff"
+      - async_loop_jobs.results[1].status_after == "poweroff"
+      - async_loop_jobs.results[1].stderr_lines == []
+      - async_loop_jobs.results[1].stdout_lines == []
+

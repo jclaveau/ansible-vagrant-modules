@@ -87,9 +87,18 @@
   tags:
     - resume
 
+# 7: halt
+- include_tasks:
+    file: 7_halt_test.yml
+    apply:
+      tags:
+        - halt
+  tags:
+    - halt
+
 - name: stop
   ansible.builtin.fail:
 
-# halt
 # destroy
 # clean config
+# ssh

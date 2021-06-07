@@ -23,7 +23,7 @@ DOCUMENTATION = '''
 module: jclaveau.vagrant.halt
 short_description: vagrant halt of only one vm
 description:
-     - vagrant halt of one vm
+     - vagrant halt of only one vm
 version_added: "0.0.1"
 author:
     - "Jean Claveau (@jclaveau)"
@@ -32,12 +32,6 @@ options:
     description:
       - name of the VM to start
     type: str
-  force:
-    description:
-      - Force shut down (equivalent of pulling power)
-    type: str
-    required: false
-    default: false
   vagrant_root:
     description:
       - the folder where vagrant files will be stored
@@ -68,7 +62,7 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             vagrant_root=dict(default=DEFAULT_ROOT),
-            name=dict(type='str'),
+            name=dict(type='str', required=True),
             force=dict(default=False, type='bool'),
         )
     )
@@ -76,16 +70,15 @@ def main():
     vagrant_root = module.params.get('vagrant_root')
     name = module.params.get('name')
 
-    force = not module.params.get('force')
-
     vgw = VagrantWrapper(
         module=module,
         root_path=vagrant_root,
     )
 
     (changed, duration, status_before, status_after) = vgw.halt(
-        name=name,
-        force=force
+        name=name
+        # always forced by python-vagrant
+        # --parallel parameter not implemented in python-vagrant
     )
 
     module.exit_json(
