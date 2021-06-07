@@ -1,0 +1,99 @@
+- name: ssh tasks
+  tags: ssh
+  block:
+  # Case 0: missing name and command parameter
+  - name: ssh without name
+    jclaveau.vagrant.ssh:
+    register: ssh_result
+    ignore_errors: true
+
+  - name: dbg ssh_result
+    ansible.builtin.debug:
+      var: ssh_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant ssh should fail
+    assert:
+      that:
+        - ssh_result is failed
+        - ssh_result is not changed
+        - "ssh_result.msg == 'missing required arguments: command, name'"
+
+  # Case 1: with a bad name
+  - name: ssh with a bad name
+    jclaveau.vagrant.ssh:
+      name: non_existing_vm
+      command: hostname
+    register: ssh_result
+    ignore_errors: true
+
+  - name: dbg ssh_result
+    ansible.builtin.debug:
+      var: ssh_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant ssh should fail
+    assert:
+      that:
+        - ssh_result is failed
+        - ssh_result is not changed
+        - >
+          "Command '['/usr/bin/vagrant', 'ssh', 'non_existing_vm', '--command', 'hostname']" in ssh_result.msg
+        - >
+          "The machine with the name 'non_existing_vm' was not found configured for" in ssh_result.stderr_lines
+        - >
+          "this Vagrant environment." in ssh_result.stderr_lines
+
+  # Case 2: with a name and a working command
+  - name: ssh srv002 -c hostname
+    jclaveau.vagrant.ssh:
+    args:
+      name: srv002
+      command: hostname
+    register: ssh_srv002_result
+
+  - name: dbg ssh_result
+    ansible.builtin.debug:
+      var: ssh_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant ssh for srv002 only should succeed
+    assert:
+      that:
+        - ssh_srv002_result is success
+        - ssh_srv002_result is changed
+        - ssh_srv002_result.stdout_lines == ["srv002"]
+        - >
+          ssh_srv002_result.stderr_lines == ["bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)", "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)"]
+        - ssh_srv002_result.duration > 0
+
+  # Case 4: with non existing command
+  - name: ssh srv002 -c plapadooou
+    jclaveau.vagrant.ssh:
+    args:
+      name: srv002
+      command: plapadooou
+    register: ssh_srv002_result
+    ignore_errors: true
+
+  - name: dbg ssh_result
+    ansible.builtin.debug:
+      var: ssh_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant ssh for srv002 only should fail
+    assert:
+      that:
+        - ssh_srv002_result is failed
+        - ssh_srv002_result is not changed
+        - ssh_srv002_result.stdout_lines == []
+        - >
+          "bash: plapadooou: command not found" in ssh_srv002_result.stderr_lines

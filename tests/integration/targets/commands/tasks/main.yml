@@ -65,9 +65,13 @@
     file: 4_ssh_config_test.yml
     apply:
       tags:
-        - ssh
+        - ssh_config
   tags:
-    - ssh
+    - ssh_config
+
+# 4: ssh
+- import_tasks:
+    file: 4.1_ssh_test.yml
 
 # 5: suspend
 - include_tasks:
@@ -105,8 +109,6 @@
   tags:
     - destroy
 
-- name: stop
-  ansible.builtin.fail:
-
-# clean config
+# deinit
+# reload in config
 # ssh

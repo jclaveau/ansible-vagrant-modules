@@ -66,7 +66,7 @@ class VagrantWrapper(object):
                 yield re.sub('\n$', '', line)
 
     def fail_module(self, msg):
-        self.module.fail_json(msg=" %s\n\nSTDOUT\n%s\n\nSTDERR\n%s" % (
+        self.module.fail_json(msg=" %s\n\nCMD STDOUT\n%s\n\nCMD STDERR\n%s" % (
                 msg,
                 "\n".join(list(self.stdout())),
                 "\n".join(list(self.stderr())),
@@ -172,6 +172,24 @@ class VagrantWrapper(object):
 
         end = round(time.time(), 2)
         return (changed,  end - start, ssh_configs)
+
+    def ssh(self, name, command):
+        start = time.time()
+        changed = False
+
+        output = None
+        try:
+            output = self.vg.ssh(vm_name=name, command=command)
+            changed = True
+            with open(self.stdout_filename, 'a') as f:
+                f.write(output)
+        except subprocess.CalledProcessError as e:
+            # print_err(e)
+            # quit()
+            self.fail_module(e)
+
+        end = round(time.time(), 2)
+        return (changed,  end - start)
 
     def up(self, name=None, no_provision=False, provider=None,
            provision=None, provision_with=None, parallel=False):
