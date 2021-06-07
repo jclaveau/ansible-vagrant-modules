@@ -248,3 +248,20 @@ class VagrantWrapper(object):
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
 
+    def suspend(self, name):
+        start = time.time()
+        changed = False
+        status_before = self.raw_statuses(name, must_be_present=True)[name]
+
+        if status_before['state'] != 'saved':
+            self.vg.suspend(
+                vm_name=name
+            )
+
+        status_after = self.raw_statuses(name, must_be_present=True)[name]
+        if status_before['state'] != status_after['state']:
+            changed = True
+
+        end = round(time.time(), 2)
+        return (changed, end - start, status_before['state'], status_after['state'])
+

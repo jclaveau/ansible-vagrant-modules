@@ -69,11 +69,18 @@
   tags:
     - ssh
 
+# 5: suspend
+- include_tasks:
+    file: 5_suspend_test.yml
+    apply:
+      tags:
+        - suspend
+  tags:
+    - suspend
+
 - name: stop
   ansible.builtin.fail:
 
-# connect
-# suspend
 # resume
 # halt
 # destroy

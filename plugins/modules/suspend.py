@@ -10,16 +10,18 @@ __metaclass__ = type
 # https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/metaclass-boilerplate.html
 
 MAN = '''
-Usage: vagrant status [name|id]
+Usage: vagrant suspend [options] [name|id]
+
+    -a, --all-global                 Suspend all running vms globally.
     -h, --help                       Print this help
 '''
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.status
-short_description: vagrant status for one vm or all vms
+module: jclaveau.vagrant.suspend
+short_description: vagrant suspend for only one vm
 description:
-     - vagrant status for one vm or all vms
+     - vagrant suspend for only one
 version_added: "0.0.1"
 author:
     - "Jean Claveau (@jclaveau)"
@@ -28,8 +30,7 @@ options:
     description:
       - name of the VM to start
     type: str
-    required: false
-    default:
+    required: true
   vagrant_root:
     description:
       - the folder where vagrant files will be stored
@@ -40,7 +41,7 @@ requirements: ["vagrant"]
 
 EXAMPLES = '''
 - name: Spawn a new VM instance
-  jclaveau.vagrant.status:
+  jclaveau.vagrant.suspend:
     name: vm_name
 '''
 
@@ -59,7 +60,7 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             vagrant_root=dict(default=DEFAULT_ROOT),
-            name=dict(type='str'),
+            name=dict(type='str', required=True),
         )
     )
 
@@ -71,14 +72,16 @@ def main():
         root_path=vagrant_root,
     )
 
-    (changed, duration, statuses) = vgw.status(
-        name=name
+    (changed, duration, status_before, status_after) = vgw.suspend(
+        name=name,
+        # --all-global not implemented in python-vagrant
     )
 
     module.exit_json(
       changed=changed,
       duration=duration,
-      statuses=statuses,
+      status_before=status_before,
+      status_after=status_after,
       stdout_lines=list(vgw.stdout()),
       stderr_lines=list(vgw.stderr())
     )

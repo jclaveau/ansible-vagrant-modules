@@ -1,0 +1,110 @@
+# Case 0: missing name parameter
+- name: suspend them
+  jclaveau.vagrant.suspend:
+  register: suspend_result
+  ignore_errors: true
+
+- name: dbg suspend_result
+  ansible.builtin.debug:
+    var: suspend_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant suspend should fail
+  assert:
+    that:
+      - suspend_result is failed
+      - suspend_result is not changed
+      - "suspend_result.msg == 'missing required arguments: name'"
+
+# Case 1: Suspending a non existing vm
+- name: suspend them
+  jclaveau.vagrant.suspend:
+  args:
+    name: "i_do_not_exist"
+  register: suspend_result
+  ignore_errors: true
+
+- name: dbg suspend_result
+  ansible.builtin.debug:
+    var: suspend_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant suspend should fail
+  assert:
+    that:
+      - suspend_result is failed
+      - suspend_result is not changed
+      - >
+        "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in suspend_result.stderr_lines
+
+# Case 2: Suspending the two vms
+- name: List existing vms
+  jclaveau.vagrant.status:
+  register: vagrant_existing_machines
+
+- name: dbg vagrant_existing_machines
+  ansible.builtin.debug:
+    var: vagrant_existing_machines.statuses
+  tags:
+   - never
+   - debug
+
+- name: suspend them
+  jclaveau.vagrant.suspend:
+  args:
+    name: "{{ item.name }}"
+  loop: "{{ vagrant_existing_machines.statuses }}"
+  async: 45
+  poll: 0
+  register: async_loop
+
+- name: dbg async_loop results
+  ansible.builtin.debug:
+    var: async_loop
+  tags:
+   - never
+   - debug
+
+- name: wait for suspend to finish
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+    mode: status
+  retries: 45
+  delay: 1
+  loop: "{{ async_loop.results }}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+
+- name: dbg async_loop_jobs results
+  ansible.builtin.debug:
+    var: async_loop_jobs
+  tags:
+   - never
+   - debug
+
+- name: Vagrant suspend should succeed
+  assert:
+    that:
+      - async_loop_jobs is success
+      - async_loop_jobs is changed
+
+      - async_loop_jobs.results[0] is success
+      - async_loop_jobs.results[0] is changed
+      - async_loop_jobs.results[0].duration > 0
+      - async_loop_jobs.results[0].status_before == "running"
+      - async_loop_jobs.results[0].status_after == "saved"
+      - 'async_loop_jobs.results[0].stdout_lines == ["==> srv001: Saving VM state and suspending execution..."]'
+      - async_loop_jobs.results[0].stderr_lines == []
+
+      - async_loop_jobs.results[1] is success
+      - async_loop_jobs.results[1] is changed
+      - async_loop_jobs.results[1].duration > 0
+      - async_loop_jobs.results[1].status_before == "running"
+      - async_loop_jobs.results[1].status_after == "saved"
+      - 'async_loop_jobs.results[1].stdout_lines == ["==> srv002: Saving VM state and suspending execution..."]'
+      - async_loop_jobs.results[1].stderr_lines == []
+
