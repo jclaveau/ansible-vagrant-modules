@@ -78,10 +78,18 @@
   tags:
     - suspend
 
+# 6: resume
+- include_tasks:
+    file: 6_resume_test.yml
+    apply:
+      tags:
+        - resume
+  tags:
+    - resume
+
 - name: stop
   ansible.builtin.fail:
 
-# resume
 # halt
 # destroy
 # clean config

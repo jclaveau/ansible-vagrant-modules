@@ -1,0 +1,168 @@
+# Case 0: missing name parameter
+- name: resume them
+  jclaveau.vagrant.resume:
+  register: resume_result
+  ignore_errors: true
+
+- name: dbg resume_result
+  ansible.builtin.debug:
+    var: resume_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant resume should fail
+  assert:
+    that:
+      - resume_result is failed
+      - resume_result is not changed
+      - "resume_result.msg == 'missing required arguments: name'"
+
+# Case 1: resumeing a non existing vm
+- name: resume them
+  jclaveau.vagrant.resume:
+  args:
+    name: "i_do_not_exist"
+  register: resume_result
+  ignore_errors: true
+
+- name: dbg resume_result
+  ansible.builtin.debug:
+    var: resume_result
+  tags:
+   - never
+   - debug
+
+- name: Vagrant resume should fail
+  assert:
+    that:
+      - resume_result is failed
+      - resume_result is not changed
+      - >
+        "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in resume_result.stderr_lines
+
+# Case 2: resumeing the two vms
+- name: List existing vms
+  jclaveau.vagrant.status:
+  register: vagrant_existing_machines
+
+- name: dbg vagrant_existing_machines
+  ansible.builtin.debug:
+    var: vagrant_existing_machines.statuses
+  tags:
+   - never
+   - debug
+
+- name: resume them
+  jclaveau.vagrant.resume:
+  args:
+    name: "{{ item.name }}"
+  loop: "{{ vagrant_existing_machines.statuses }}"
+  async: 45
+  poll: 0
+  register: async_loop
+
+- name: dbg async_loop results
+  ansible.builtin.debug:
+    var: async_loop
+  tags:
+   - never
+   - debug
+
+- name: wait for resume to finish
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+    mode: status
+  retries: 45
+  delay: 1
+  loop: "{{ async_loop.results }}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+
+- name: dbg async_loop_jobs results
+  ansible.builtin.debug:
+    var: async_loop_jobs
+  tags:
+   - never
+   - debug
+
+- name: Vagrant resume should succeed
+  assert:
+    that:
+      - async_loop_jobs is success
+      - async_loop_jobs is changed
+
+      - async_loop_jobs.results[0] is success
+      - async_loop_jobs.results[0] is changed
+      - async_loop_jobs.results[0].duration > 0
+      - async_loop_jobs.results[0].status_before == "saved"
+      - async_loop_jobs.results[0].status_after == "running"
+      - '"==> srv001: Resuming suspended VM..." in async_loop_jobs.results[0].stdout_lines'
+      - '"==> srv001: Machine booted and ready!" in async_loop_jobs.results[0].stdout_lines'
+      - async_loop_jobs.results[0].stderr_lines == []
+
+      - async_loop_jobs.results[1] is success
+      - async_loop_jobs.results[1] is changed
+      - async_loop_jobs.results[1].duration > 0
+      - async_loop_jobs.results[1].status_before == "saved"
+      - async_loop_jobs.results[1].status_after == "running"
+      - '"==> srv002: Resuming suspended VM..." in async_loop_jobs.results[1].stdout_lines'
+      - '"==> srv002: Machine booted and ready!" in async_loop_jobs.results[1].stdout_lines'
+      - async_loop_jobs.results[1].stderr_lines == []
+
+# Case 3: Idempotence
+- name: re-resume them
+  jclaveau.vagrant.resume:
+  args:
+    name: "{{ item.name }}"
+  loop: "{{ vagrant_existing_machines.statuses }}"
+  async: 45
+  poll: 0
+  register: async_loop
+
+- name: dbg async_loop for re-resume
+  ansible.builtin.debug:
+    var: async_loop
+  tags:
+   - never
+   - debug
+
+- name: wait for re-resume to finish
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+    mode: status
+  retries: 45
+  delay: 1
+  loop: "{{ async_loop.results }}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+
+- name: dbg async_loop_jobs for re-resume
+  ansible.builtin.debug:
+    var: async_loop_jobs
+  tags:
+   - never
+   - debug
+
+- name: Vagrant re-resume should succeed
+  assert:
+    that:
+      - async_loop_jobs is success
+      - async_loop_jobs is not changed
+
+      - async_loop_jobs.results[0] is success
+      - async_loop_jobs.results[0] is not changed
+      - async_loop_jobs.results[0].duration > 0
+      - async_loop_jobs.results[0].status_before == "running"
+      - async_loop_jobs.results[0].status_after == "running"
+      - async_loop_jobs.results[0].stdout_lines == []
+      - async_loop_jobs.results[0].stderr_lines == []
+
+      - async_loop_jobs.results[1] is success
+      - async_loop_jobs.results[1] is not changed
+      - async_loop_jobs.results[1].duration > 0
+      - async_loop_jobs.results[1].status_before == "running"
+      - async_loop_jobs.results[1].status_after == "running"
+      - async_loop_jobs.results[1].stdout_lines == []
+      - async_loop_jobs.results[1].stderr_lines == []
+
