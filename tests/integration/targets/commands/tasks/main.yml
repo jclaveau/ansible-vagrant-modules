@@ -96,9 +96,17 @@
   tags:
     - halt
 
+# 8: destroy
+- include_tasks:
+    file: 8_destroy_test.yml
+    apply:
+      tags:
+        - destroy
+  tags:
+    - destroy
+
 - name: stop
   ansible.builtin.fail:
 
-# destroy
 # clean config
 # ssh

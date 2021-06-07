@@ -24,7 +24,7 @@ DOCUMENTATION = '''
 module: jclaveau.vagrant.destroy
 short_description: vagrant destroy of only one vm
 description:
-     - vagrant destroy of one vm
+     - vagrant destroy of only one vm
 version_added: "0.0.1"
 author:
     - "Jean Claveau (@jclaveau)"
@@ -45,7 +45,6 @@ EXAMPLES = '''
 - name: Spawn a new VM instance
   jclaveau.vagrant.destroy:
     name: vm_name
-    force: true
 '''
 
 from ansible.module_utils.basic import AnsibleModule
@@ -63,7 +62,7 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             vagrant_root=dict(default=DEFAULT_ROOT),
-            name=dict(type='str'),
+            name=dict(type='str', required=True),
         )
     )
 
@@ -77,6 +76,8 @@ def main():
 
     (changed, duration, status_before, status_after) = vgw.destroy(
         name=name
+        # always forced by python-vagrant
+        # --parallel parameter not implemented in python-vagrant
     )
 
     module.exit_json(
