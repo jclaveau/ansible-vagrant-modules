@@ -123,16 +123,21 @@ def forwarded_ports(vm, host)
 end
 
 def provision_ansible(node, host, groups)
+  return unless host.key?('ansible')
+  # https://www.vagrantup.com/docs/provisioning/ansible_intro
+  # https://www.vagrantup.com/docs/provisioning/ansible
   ansible_mode = run_locally? ? 'ansible_local' : 'ansible'
   node.vm.provision ansible_mode do |ansible|
     ansible.compatibility_mode = '2.0'
+    host['ansible'].each do |key, value|
+      # ansible[key] = host['ansible'][key]  produces a bug due to the config implementation i guess
+      eval("ansible."+key+" = host['ansible'][key]")
+    end
+    ansible.limit = 'all' if ! ansible.has? 'limit'
+    ansible.limit = true if ! ansible.has? 'become'
     if ! groups.nil?
       ansible.groups = groups
     end
-    ansible.playbook = host.key?('playbook') ?
-        "ansible/#{host['playbook']}" :
-        "ansible/site.yml"
-    ansible.become = true
   end
 end
 
