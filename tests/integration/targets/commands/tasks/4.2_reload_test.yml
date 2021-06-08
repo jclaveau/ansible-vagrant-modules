@@ -1,0 +1,181 @@
+- name: reload tests
+  tags: reload
+  block:
+  # Case 0: missing name and command parameter
+  - name: reload without name
+    jclaveau.vagrant.reload:
+    register: reload_result
+    ignore_errors: true
+
+  - name: dbg reload_result
+    ansible.builtin.debug:
+      var: reload_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant reload should fail
+    assert:
+      that:
+        - reload_result is failed
+        - reload_result is not changed
+        - "reload_result.msg == 'missing required arguments: name'"
+
+  # Case 1: with a bad name
+  - name: reload with a bad name
+    jclaveau.vagrant.reload:
+      name: non_existing_vm
+    register: reload_result
+    ignore_errors: true
+
+  - name: dbg reload_result
+    ansible.builtin.debug:
+      var: reload_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant reload should fail
+    assert:
+      that:
+        - reload_result is failed
+        - reload_result is not changed
+        - >
+          "Vagrant::Errors::MachineNotFound: The machine with the name 'non_existing_vm' was not found configured for this Vagrant environment." in reload_result.msg
+        - >
+          "Vagrant::Errors::MachineNotFound: The machine with the name 'non_existing_vm' was not found configured for this Vagrant environment." in reload_result.stderr_lines
+
+  # Case 2: with a valid name
+  - name: reload srv002 basic
+    jclaveau.vagrant.reload:
+    args:
+      name: srv002
+    register: reload_srv002_result
+
+  - name: dbg reload_result
+    ansible.builtin.debug:
+      var: reload_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant reload for srv002 only should succeed
+    assert:
+      that:
+        - reload_srv002_result is success
+        - reload_srv002_result is changed
+        - reload_srv002_result.duration > 0
+        - reload_srv002_result.status_before == "running"
+        - reload_srv002_result.status_after == "running"
+        - reload_srv002_result.stderr_lines == []
+        - >
+          "==> srv002: Attempting graceful shutdown of VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Booting VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Machine booted and ready!" in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Machine already provisioned. Run `vagrant provision` or use the `--provision`" in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: flag to force provisioning. Provisioners marked to run always will still run." in reload_srv002_result.stdout_lines
+
+  # Case 3: with provisioning disabled
+  - name: reload srv002
+    jclaveau.vagrant.reload:
+    args:
+      name: srv002
+      provision: false
+    register: reload_srv002_result
+
+  - name: dbg reload_result
+    ansible.builtin.debug:
+      var: reload_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant reload for srv002 only should succeed
+    assert:
+      that:
+        - reload_srv002_result is success
+        - reload_srv002_result is changed
+        - reload_srv002_result.duration > 0
+        - reload_srv002_result.status_before == "running"
+        - reload_srv002_result.status_after == "running"
+        - reload_srv002_result.stderr_lines == []
+        - >
+          "==> srv002: Attempting graceful shutdown of VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Booting VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Machine booted and ready!" in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Machine not provisioned because `--no-provision` is specified." in reload_srv002_result.stdout_lines
+
+  # Case 4: with provisioning forced
+  - name: reload srv002 with provisioning (even if already provisionned)
+    jclaveau.vagrant.reload:
+    args:
+      name: srv002
+      provision: true
+    register: reload_srv002_result
+
+  - name: dbg reload_result
+    ansible.builtin.debug:
+      var: reload_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant reload with forced provisionning for srv002 only should succeed (no stdout line indicating forced provisionning)
+    assert:
+      that:
+        - reload_srv002_result is success
+        - reload_srv002_result is changed
+        - reload_srv002_result.duration > 0
+        - reload_srv002_result.status_before == "running"
+        - reload_srv002_result.status_after == "running"
+        - reload_srv002_result.stderr_lines == []
+        - >
+          "==> srv002: Attempting graceful shutdown of VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Booting VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Machine booted and ready!" in reload_srv002_result.stdout_lines
+
+  # Case 4: with provisioning for shell only
+  - name: reload with provisionning for shell only
+    jclaveau.vagrant.reload:
+    args:
+      name: srv002
+      provision_with: shell
+    register: reload_srv002_result
+
+  - name: dbg reload_result
+    ansible.builtin.debug:
+      var: reload_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant reload with provisionning for shell only shoul succeed
+    assert:
+      that:
+        - reload_srv002_result is success
+        - reload_srv002_result is changed
+        - reload_srv002_result.duration > 0
+        - reload_srv002_result.status_before == "running"
+        - reload_srv002_result.status_after == "running"
+        - reload_srv002_result.stderr_lines == []
+        - >
+          "==> srv002: Attempting graceful shutdown of VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Booting VM..." in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Machine booted and ready!" in reload_srv002_result.stdout_lines
+        - >
+          "==> srv002: Running provisioner: shell..." in reload_srv002_result.stdout_lines
+        - >
+          "    srv002: Running: inline script" in reload_srv002_result.stdout_lines
+        - >
+          "    srv002: srv002" in reload_srv002_result.stdout_lines

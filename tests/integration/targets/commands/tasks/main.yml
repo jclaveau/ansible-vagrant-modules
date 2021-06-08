@@ -24,6 +24,9 @@
           guest: 80
         - host: "8{{ i }}43"
           guest: 443
+      shell:
+        inline: hostname
+        # run: "always"
     # log: true
   register: vagrant_config_results
   loop:
@@ -31,6 +34,8 @@
     - "srv002"
   loop_control:
     index_var: "i"
+  tags:
+    - always
 
 # 1: up
 - include_tasks:
@@ -69,9 +74,13 @@
   tags:
     - ssh_config
 
-# 4: ssh
+# 4.1: ssh
 - import_tasks:
     file: 4.1_ssh_test.yml
+
+# 4.2: reload
+- import_tasks:
+    file: 4.2_reload_test.yml
 
 # 5: suspend
 - include_tasks:
@@ -110,5 +119,4 @@
     - destroy
 
 # deinit
-# reload in config
-# ssh
+

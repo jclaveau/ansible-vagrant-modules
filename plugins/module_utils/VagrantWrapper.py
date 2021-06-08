@@ -89,6 +89,8 @@ class VagrantWrapper(object):
                     'provider': result.provider,
                 }
         except subprocess.CalledProcessError as e:
+            if not len(e.stdout):
+                self.fail_module(e)
             stderr_parts = e.stdout.split(b',')
             stderr = stderr_parts[7] + b': ' + stderr_parts[8].replace(b'\\n', b' ')
             with open(self.stderr_filename, 'a') as f:
@@ -225,6 +227,27 @@ class VagrantWrapper(object):
         status_after = self.raw_statuses(name, must_be_present=True)[name]
         if status_before['state'] != status_after['state']:
             changed = True
+
+        end = round(time.time(), 2)
+        return (changed, end - start, status_before['state'], status_after['state'])
+
+    def reload(self, name, provision=None, provision_with=None):
+        start = time.time()
+        changed = False
+        status_before = self.raw_statuses(name=name, must_be_present=True)[name]
+
+        if status_before['state'] == 'running':
+            self.vg.reload(
+                vm_name=name,
+                provision=provision,
+                provision_with=provision_with,
+                # force=force,  # not implemented in python-vagrant
+            )
+            status_after = self.raw_statuses(name, must_be_present=True)[name]
+            # status values "running" before AND after but the machine status has temporary been "poweroff"
+            changed = True
+        else:
+            status_after = status_before
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
