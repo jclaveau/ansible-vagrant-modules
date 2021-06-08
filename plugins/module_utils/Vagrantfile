@@ -139,6 +139,21 @@ def provision_shell(node, host)
   # end
 end
 
+def virtualbox_guest_additions(node, host)
+  return unless host.key?('vbguest')
+
+  if Vagrant.has_plugin?("vagrant-vbguest") then
+    # https://github.com/dotless-de/vagrant-vbguest
+    # https://subscription.packtpub.com/book/virtualization_and_cloud/9781786464910/1/ch01lvl1sec12/enabling-virtualbox-guest-additions-in-vagrant
+    host['vbguest'].each do |key, value|
+      # shell[key] = host['shell'][key] produces a bug due to the config implementation i guess
+      eval("node.vbguest."+key+" = host['vbguest'][key]")
+    end
+
+    node.vbguest = false if ! ansible.has? 'auto_update' # Disables vbguest auto_update by default as it slows down tests
+  end
+end
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   hosts.each do |host|
     config.vm.define host['name'] do |node|
@@ -150,6 +165,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       custom_synced_folders(node.vm, host)
 
       forwarded_ports(node.vm, host)
+
+      virtualbox_guest_additions(node, host)
 
       node.vm.provider :virtualbox do |vb|
         vb.memory = host['memory'] if host.key? 'memory'
