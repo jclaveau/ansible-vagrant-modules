@@ -83,29 +83,6 @@ def custom_synced_folders(vm, host)
   end
 end
 
-# }}}
-
-
-# Set options for shell provisioners to be run always. If you choose to include
-# it you have to add a cmd variable with the command as data.
-#
-# Use case: start symfony dev-server
-#
-# example:
-# shell_always:
-#   - cmd: php /srv/google-dev/bin/console server:start 192.168.52.25:8080 --force
-def shell_provisioners_always(vm, host)
-  if host.has_key?('shell_always')
-    scripts = host['shell_always']
-
-    scripts.each do |script|
-      vm.provision "shell", inline: script['cmd'], run: "always"
-    end
-  end
-end
-
-# }}}
-
 # Adds forwarded ports to your Vagrant machine
 #
 # example:
@@ -141,10 +118,28 @@ def provision_ansible(node, host, groups)
   end
 end
 
-# }}}
+def provision_shell(node, host)
+  return unless host.key?('shell')
+  node.vm.provision "shell" do |shell|
+    # https://www.vagrantup.com/docs/provisioning/shell
+    host['shell'].each do |key, value|
+      # shell[key] = host['shell'][key] produces a bug due to the config implementation i guess
+      eval("shell."+key+" = host['shell'][key]")
+    end
+  end
+
+  # Could be useful https://stackoverflow.com/questions/15461898/passing-variable-to-a-shell-script-provisioner-in-vagrant
+  # config.vm.provision "shell" do |s|
+  #   s.binary = true # Replace Windows line endings with Unix line endings.
+  #   s.inline = %Q(/usr/bin/env    \
+  #     TRACE=#{ENV['TRACE']}       \
+  #     VERBOSE=#{ENV['VERBOSE']}   \
+  #     FORCE=#{ENV['FORCE']}       \
+  #     bash my_script.sh)
+  # end
+end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  
   hosts.each do |host|
     config.vm.define host['name'] do |node|
       node.vm.box = host['box'] ||= DEFAULT_BASE_BOX
@@ -153,7 +148,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       node.vm.hostname = host['name']
       node.vm.network :private_network, network_options(host)
       custom_synced_folders(node.vm, host)
-      shell_provisioners_always(node.vm, host)
+
       forwarded_ports(node.vm, host)
 
       node.vm.provider :virtualbox do |vb|
@@ -165,6 +160,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # host name, this will fail.
         vb.customize ['modifyvm', :id, '--groups', PROJECT_NAME]
       end
+
+      # Shell provisioning
+      provision_shell(node, host)
 
       # Ansible provisioning
       provision_ansible(node, host, groups)
