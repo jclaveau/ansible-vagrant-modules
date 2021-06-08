@@ -159,9 +159,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define host['name'] do |node|
       node.vm.box = host['box'] ||= DEFAULT_BASE_BOX
       node.vm.box_url = host['box_url'] if host.key? 'box_url'
-
       node.vm.hostname = host['name']
-      node.vm.network :private_network, network_options(host)
+
+      node.vm.network :private_network, **network_options(host)
+
       custom_synced_folders(node.vm, host)
 
       forwarded_ports(node.vm, host)
