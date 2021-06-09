@@ -46,24 +46,21 @@ options:
   provision:
     description:
       - Enable or disable provisioning
+      - Force if true, disables if false and do it if not already provision if unspecified
     type: bool
-    required: false
-    default: []
-  log:
+  provision_with:
     description:
-      - Whether or not Vagrant's logs must be stored
+      - Enable only certain provisioners, by type or by name.
     type: bool
-    default: false
+  provider:
+    type: str
+    description:
+      - a provider to use instead of default virtualbox
   vagrant_root:
     description:
       - the folder where vagrant files will be stored
     type: str
     default: .
-  provider:
-    default: virtualbox
-    type: str
-    description:
-      - a provider to use instead of default virtualbox
 requirements: ["vagrant, lockfile"]
 '''
 
@@ -104,23 +101,18 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             vagrant_root=dict(default=DEFAULT_ROOT),
-            name=dict(type='str'),
-            provider=dict(default=DEFAULT_PROVIDER),
-            parallel=dict(default=False, type='bool'),
-            provision=dict(default=True, type='bool'),
-            # provision_with=dict(default=[], type='list'),
+            name=dict(type='str', required=True),
+            provider=dict(type='str'),
+            provision=dict(type='bool'),
+            provision_with=dict(type='list'),
         )
     )
 
     vagrant_root = module.params.get('vagrant_root')
     name = module.params.get('name')
     provider = module.params.get('provider')
-    no_provision = not module.params.get('provision')
-    # provision_with = module.params.get('provision_with')
-    parallel = module.params.get('parallel')
-
-    # --[no-]destroy-on-error      Destroy machine if any fatal error happens (default to true)
-    # --[no-]install-provider      If possible, install the provider if it isn't installed
+    provision = module.params.get('provision')
+    provision_with = module.params.get('provision_with')
 
     vgw = VagrantWrapper(
         module=module,
@@ -128,11 +120,13 @@ def main():
     )
 
     (changed, duration, status_before, status_after) = vgw.up(
-        provider=provider,
         name=name,
-        no_provision=no_provision,
-        # provision_with=provision_with,
-        parallel=parallel
+        provider=provider,
+        provision=provision,
+        provision_with=provision_with,
+        # parallel=parallel # Not supported by python-vagrant
+        # destroy-on-error # Not supported by python-vagrant
+        # install-provider # Not supported by python-vagrant
     )
 
     module.exit_json(
