@@ -1,9 +1,6 @@
-<!---
-This file is auto-generate by a github hook please modify readme.md if you don't want to loose your work
--->
-# Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant.git)
-[![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/sanity-tests.yaml/badge.svg?branch=refacto_vagrantfile_control)](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/sanity-tests.yaml?query=branch%3Arefacto_vagrantfile_control)
-[![Integration Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml/badge.svg?branch=refacto_vagrantfile_control)](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml?query=branch%3Arefacto_vagrantfile_control)
+# Ansible Collection - [jclaveau.vagrant]({{ remote.origin.url }})
+[![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/sanity-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/sanity-tests.yaml?query=branch%3A{{ current.branch }})
+[![Integration Tests](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/jclaveau/ansible-vagrant-module/actions/workflows/integration-tests.yaml?query=branch%3A{{ current.branch }})
 [![Coverage](https://codecov.io/gh/jclaveau/ansible-vagrant-module/branch/master/graph/badge.svg?token=qlZsPUMdwP)](https://codecov.io/gh/jclaveau/ansible-vagrant-module)
 
 ===============
