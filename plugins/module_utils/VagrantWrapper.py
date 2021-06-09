@@ -205,8 +205,8 @@ class VagrantWrapper(object):
         changed = False
         status_before = self.raw_statuses(name, must_be_present=True)[name]
 
-        try:
-            if status_before['state'] != 'running':
+        if status_before['state'] != 'running':
+            try:
                 self.vg.up(
                     vm_name=name,
                     no_provision=no_provision,
@@ -215,18 +215,20 @@ class VagrantWrapper(object):
                     provision_with=provision_with,
                     stream_output=False  # !!! Produces error in Ansible if true "AttributeError: 'list' object has no attribute 'splitlines'"
                 )
-        except subprocess.CalledProcessError as e:
-            print(e)
-            quit()
-            stderr_parts = e.stdout.split(b',')
-            stderr = stderr_parts[7] + b': ' + stderr_parts[8].replace(b'\\n', b' ')
-            with open(self.stderr_filename, 'a') as f:
-                f.write(stderr.decode('utf-8'))
-            self.fail_module(e)
+            except subprocess.CalledProcessError as e:
+                print(e)
+                quit()
+                stderr_parts = e.stdout.split(b',')
+                stderr = stderr_parts[7] + b': ' + stderr_parts[8].replace(b'\\n', b' ')
+                with open(self.stderr_filename, 'a') as f:
+                    f.write(stderr.decode('utf-8'))
+                self.fail_module(e)
 
-        status_after = self.raw_statuses(name, must_be_present=True)[name]
-        if status_before['state'] != status_after['state']:
-            changed = True
+            status_after = self.raw_statuses(name, must_be_present=True)[name]
+            if status_before['state'] != status_after['state']:
+                changed = True
+        else:
+            status_after = status_before
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
@@ -262,10 +264,11 @@ class VagrantWrapper(object):
                 vm_name=name,
                 force=force
             )
-
-        status_after = self.raw_statuses(name, must_be_present=True)[name]
-        if status_before['state'] != status_after['state']:
-            changed = True
+            status_after = self.raw_statuses(name, must_be_present=True)[name]
+            if status_before['state'] != status_after['state']:
+                changed = True
+        else:
+            status_after = status_before
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
@@ -279,10 +282,11 @@ class VagrantWrapper(object):
             self.vg.destroy(
                 vm_name=name
             )
-
-        status_after = self.raw_statuses(name, must_be_present=True)[name]
-        if status_before['state'] != status_after['state']:
-            changed = True
+            status_after = self.raw_statuses(name, must_be_present=True)[name]
+            if status_before['state'] != status_after['state']:
+                changed = True
+        else:
+            status_after = status_before
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
@@ -296,10 +300,11 @@ class VagrantWrapper(object):
             self.vg.suspend(
                 vm_name=name
             )
-
-        status_after = self.raw_statuses(name, must_be_present=True)[name]
-        if status_before['state'] != status_after['state']:
-            changed = True
+            status_after = self.raw_statuses(name, must_be_present=True)[name]
+            if status_before['state'] != status_after['state']:
+                changed = True
+        else:
+            status_after = status_before
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
@@ -313,10 +318,11 @@ class VagrantWrapper(object):
             self.vg.resume(
                 vm_name=name
             )
-
-        status_after = self.raw_statuses(name, must_be_present=True)[name]
-        if status_before['state'] != status_after['state']:
-            changed = True
+            status_after = self.raw_statuses(name, must_be_present=True)[name]
+            if status_before['state'] != status_after['state']:
+                changed = True
+        else:
+            status_after = status_before
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
