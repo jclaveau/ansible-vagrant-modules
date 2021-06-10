@@ -1,40 +1,41 @@
 <!---
 This file is auto-generate by a github hook please modify readme.md if you don't want to loose your work
 -->
-# Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant.git)
+# WIP: Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant.git)
 [![Sanity Tests](https://github.com/jclaveau/ansible-vagrant/actions/workflows/sanity-tests.yaml/badge.svg?branch=refacto_vagrantfile_control)](https://github.com/jclaveau/ansible-vagrant/actions/workflows/sanity-tests.yaml?query=branch%3Arefacto_vagrantfile_control)
 [![Integration Tests](https://github.com/jclaveau/ansible-vagrant/actions/workflows/integration-tests.yaml/badge.svg?branch=refacto_vagrantfile_control)](https://github.com/jclaveau/ansible-vagrant/actions/workflows/integration-tests.yaml?query=branch%3Arefacto_vagrantfile_control)
 [![Coverage](https://codecov.io/gh/jclaveau/ansible-vagrant/branch/master/graph/badge.svg?token=qlZsPUMdwP)](https://codecov.io/gh/jclaveau/ansible-vagrant)
 
 
+This collection of modules provide access to [Vagrant](http://vagrantup.com/) commands and configuration of the Vagrantfile from [ansible](http://ansible.cc) playbooks and roles.
 
-This collection of modules provide access to [Vagrant](http://vagrantup.com/) commands and configuration of the Vagrantfile.
-
-It's first goal is to provide the possibility of simulating cluster nodes failure to anticipate their recovery.
-
-
-## Overview
-Ansible-vagrant is a module for [ansible](http://ansible.cc) that allows you to create VMs on your local system using [Vagrant](http://vagrantup.com/).
-
-
-## Need
- - molecule and ansible-test do not allow dynamic modification of the platforms/cluster you play your roles / playbooks on
-
-This allows you to write ansible [playbooks](http://ansible.github.com/playbooks.html) that dynamically create local guests and configure them via the ansible playbook(s).
 By allowing you to run guests on your local system, this module facilitates testing and development of orchestrated, distributed applications via ansible.
 
-Ansible-vagrant should not be confused with [vagrant-ansible](https://github.com/dsander/vagrant-ansible) which allows you to run ansible playbooks on vagrant-launched hosts.
+## Need
+It's first goal is to provide the possibility of simulating cluster nodes failure to anticipate their recovery.
+
+ - [molecule](https://molecule.readthedocs.io/en/latest/) and [ansible-test](https://docs.ansible.com/ansible/latest/dev_guide/testing.html) do not allow dynamic modifications of the platforms or hosts you play your roles / playbooks on so they do not fit my needs.
+ - Running vagrant from the shell module generated permission issues on Ubuntu
+ - There is a well written role [amtega/ansible_role_vagrant_provisioner](https://github.com/amtega/ansible_role_vagrant_provisioner) as well but it doesn't
+   support Ubuntu, probably because it calls 'vagrant' from the shell too
+
+This collection should not be confused with [vagrant-ansible](https://github.com/dsander/vagrant-ansible) which allows you to run ansible playbooks on vagrant-launched hosts.
 
 ## Dependencies & Installation
-
+Before this work is ready to be shared on ansible-galaxy, you could include it in yor playbooks this way
+```yaml
+collections:
+  - name: git@github.com:jclaveau/ansible-vagrant.git
+    type: git
+    version: 0
 ```
+
+```sh
 ansible-galaxy collection install jclaveau.vagrant
 pip install -r requirements.txt
 ```
 
- * a working [Vagrant](http://vagrantup.com/) install, which will itself
-   require [VirtualBox](https://www.virtualbox.org/wiki/Downloads).
-
+[Vagrant](http://vagrantup.com/) will require at least one [provider](https://www.vagrantup.com/docs/providers) like [VirtualBox](https://www.virtualbox.org), [Libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt), [Docker](https://www.docker.io/) or [VMware](https://www.vmware.com/)
 
 ## Getting started with ansible-vagrant
 

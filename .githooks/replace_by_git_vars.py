@@ -63,6 +63,14 @@ git_vars['current.commit'] = subprocess.check_output([
     "HEAD",
 ]).strip().decode('utf-8')
 
+# retrieve current commit hash
+git_vars['tags'] = subprocess.check_output([
+    "git",
+    "tag",
+    "--list",
+]).strip().decode('utf-8')
+git_vars['current.version'] = git_vars['tags'][0] if len(git_vars['tags']) else None
+
 if verbose:
     print(json.dumps(git_vars, indent=4))
 
@@ -76,8 +84,8 @@ with open(output_file, "w") as fh:
         new_line = line
         for entry in git_vars:
             pattern = '{{\s*' + entry + '\s*}}'
-            if len(re.findall(pattern, line)):
-                new_line = re.sub(pattern, git_vars[entry], line)
+            if len(re.findall(pattern, new_line)):
+                new_line = re.sub(pattern, git_vars[entry], new_line)
                 if verbose:
                     print("Found {{ " + entry + " }} in:\n   " + line + "=> " + new_line)
                 changed = True
