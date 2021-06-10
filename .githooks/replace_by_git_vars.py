@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# https://www.viget.com/articles/two-ways-to-share-git-hooks-with-your-team/
-# git config core.hooksPath .githooks
+# Copyright: (c) 2016, [Daniel Dye (https://gist.github.com/dandye/dfe0870a6a1151c89ed9)]
+# Copyright: (c) 2021, [Jean Claveau (https://gist.github.com/jclaveau/af2271b9fdf05f7f1983f492af5592f8)]
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 import sys
 import os
@@ -12,17 +13,16 @@ import subprocess
 
 # """
 # This script replaces vars written between brackets like "{{ remote.origin.url }}" by their values.
-# Used as a pre-commit hook[2] to update the README.md file's
-
+# Used as a pre-commit hook[2] to update the README.md file's and have badges matching the current branch
+#
 # [1] http://stackoverflow.com/questions/18673694/referencing-current-branch-in-github-readme-md
 # [2] http://www.git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
-# [3] https://docs.travis-ci.com/user/status-images/
 # [4] https://gist.github.com/dandye/dfe0870a6a1151c89ed9
 # """
 
 argv = sys.argv
 if len(argv) < 3:
-    print("git_vars [input_file] [ouput_file] [-v]")
+    print(os.path.basename(__file__) + " [input_file] [ouput_file] [-v]")
     quit()
 
 input_file = argv[1]
