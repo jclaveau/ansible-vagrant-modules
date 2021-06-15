@@ -166,6 +166,7 @@ You are please to implement it if you wish: [issue 39](https://github.com/jclave
 
 ### TODO
 Feel free to give a look to [the issues](https://github.com/jclaveau/ansible-vagrant-modules/issues) if you need a feature and have time to implement it.
+The priority should ideally go to the [current target milestone issues](https://github.com/jclaveau/ansible-vagrant-modules/milestone/1).
 ### Contributing
  + fork this repo
  + clone it in a folder matching the following pattern `.../ansible_collections/{{ repository.name }}` (required by `Ansible`)

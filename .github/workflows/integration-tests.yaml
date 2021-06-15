@@ -19,14 +19,14 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install Ansible
-        run: pip install ansible
+      - name: Install gnu-sed
+        run: brew install gnu-sed
 
-      - name: Install lockfile dependency
-        run: pip install lockfile
+      - name: Install wheel
+        run: pip install wheel
 
-      - name: Install python-vagrant dependency
-        run: pip install python-vagrant
+      - name: Install dependencies
+        run: pip install -r ./requirements.txt
 
       - name: Install coverage dependency
         run: pip install --user coverage==4.5.4
@@ -40,7 +40,7 @@ jobs:
       #       ${{ runner.os }}-vagrant-
 
       - name: Run the integration test in a playbook
-        run: /Users/runner/work/ansible-vagrant-module/ansible-vagrant-module/ansible_collections/jclaveau/vagrant/tests/integration_playbook/tests.sh
+        run: ./tests/integration_playbook/tests.sh
 
       - name: Run the integration tests
         run: ansible-test integration --python 3.8 --coverage --no-temp-workdir
@@ -52,8 +52,7 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          directory: /Users/runner/work/ansible-vagrant-module/ansible-vagrant-module/ansible_collections/jclaveau/vagrant/tests/output/reports/ # optional
-          # files: ./tests/output/reports/coverage.xml # optional
+          directory: ./tests/output/reports/ # optional
           flags: integrationtests # optional
           name: codecov-vagrant-collection-integration-tests # optional
           fail_ci_if_error: true # optional (default = false)

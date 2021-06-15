@@ -63,7 +63,7 @@ git_vars['current.commit'] = subprocess.check_output([
     "HEAD",
 ]).strip().decode('utf-8')
 
-# retrieve current commit hash
+# retrieve tags and current version
 git_vars['tags'] = subprocess.check_output([
     "git",
     "tag",

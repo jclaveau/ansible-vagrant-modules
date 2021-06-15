@@ -16,40 +16,43 @@
   - localhost
   connection: local
   gather_facts: False
-
   vars:
     ansible_python_interpreter: "/usr/bin/env python"
-    box_name: debian/buster64
-    vm_name: frank_from_playbook
 
   tasks:
-  - name: Fire up a set of vagrant instances to log into
-    local_action: vagrant
+  - name: Add two vms to the Vagrantfile
+    jclaveau.vagrant.config:
     args:
-      command: up
-      box_name: "{{box_name}}"
-      vm_name: "{{vm_name}}"
-      config_code: |
-        config.vm.provider "virtualbox" do |vb|
-        vb.memory = 256
-        end
-      log: true
-    register: vagrant_up_results
+      state: "present"
+      name: "srv001"
+      config:
+        box: debian/buster64
 
-  - name: Dump vagrant_up_results
+  - name: Fire up a vagrant instances to log into
+    local_action: jclaveau.vagrant.up
+    args:
+      name: "srv001"
+    register: vagrant_up_result
+
+  - name: Retrieve ssh config
+    local_action: jclaveau.vagrant.ssh_config
+    args:
+      name: "srv001"
+    register: vagrant_ssh_config_result
+
+  - name: Dump vagrant_ssh_config_result
     ansible.builtin.debug:
-      msg: '{{item}}'
-    loop: '{{vagrant_up_results.instances}}'
+      var: vagrant_ssh_config_result
 
-  - name: Capture that hosts contact info into the inventory (the hostname is a unique ID from Vagrant ... )
+  - name: Adds this node as e member of Ansible's inventory
     ansible.builtin.add_host:
       groupname: vagrant_hosts
-      hostname: '{{item.vagrant_name}}'
-      ansible_ssh_port: '{{item.port}}'
-      ansible_ssh_host: '{{item.public_ip}}'
-      ansible_ssh_private_key_file: '{{item.key}}'
+      hostname: '{{item.Host}}'
+      ansible_ssh_port: '{{item.Port}}'
+      ansible_ssh_host: '{{item.HostName}}'
+      ansible_ssh_private_key_file: '{{item.IdentityFile}}'
       ansible_ssh_args: ' -o StrictHostKeyChecking=no -o IdentitiesOnly=yes ' # avoids ssh key storing and fixes warnings "sftp|scp transfer mechanism failed on [127.0.0.1]"
-    loop: '{{vagrant_up_results.instances}}'
+    loop: '{{ vagrant_ssh_config_result.ssh_configs }}'
 
 # Run on the vagrant_hosts group, checking that we have basic ssh access...
 - hosts:
@@ -57,7 +60,6 @@
   user: vagrant
   vars:
     ansible_python_interpreter: "/usr/bin/env python"
-    vm_name: frank
   gather_facts: True
 
   tasks:
@@ -81,6 +83,6 @@
         - vars_result is success
 
   - name: Now clear everything
-    local_action:
-      module: vagrant
-      command: clear
+    local_action: jclaveau.vagrant.destroy
+    args:
+      name: srv001
