@@ -46,10 +46,10 @@ jobs:
         run: ./tests/integration_playbook/tests.sh
 
       - name: Run the integration tests
-        run: ansible-test integration --python 3.8 --coverage --no-temp-workdir
+        run: ansible-test integration --python 3.8 --coverage --no-temp-workdir --color
 
       - name: Prepare coverage for Codecov.io
-        run: ansible-test coverage xml
+        run: ansible-test coverage xml --color
 
       # https://github.com/marketplace/actions/codecov
       - uses: codecov/codecov-action@v1

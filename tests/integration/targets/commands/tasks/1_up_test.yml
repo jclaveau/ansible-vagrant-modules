@@ -76,7 +76,7 @@
     async_status:
       jid: "{{item.ansible_job_id}}"
       mode: status
-    retries: 120
+    retries: 999
     delay: 1
     loop: "{{async_loop.results}}"
     register: async_loop_jobs
