@@ -53,7 +53,7 @@
   loop_control:
     index_var: "i"
 
-- name: dbg up results
+- name: dbg config add results
   ansible.builtin.debug:
     msg: "{{ vagrant_config_add_results }}"
   tags:

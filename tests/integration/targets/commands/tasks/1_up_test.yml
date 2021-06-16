@@ -54,7 +54,7 @@
       - srv001
       - srv002
 
-  - name: Start the 2 vagrant instances with shell provisionning forced to log into
+  - name: Start the 2 vagrant instances asynchronously
     jclaveau.vagrant.up:
     args:
       name: "{{ item }}"

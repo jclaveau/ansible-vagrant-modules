@@ -1,5 +1,0 @@
----
-ansible_python_interpreter: "/usr/bin/env python"
-box_name: "debian/buster64"
-box_path_virtualbox: "https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/virtualbox.box"
-box_path_libvirt: "https://app.vagrantup.com/debian/boxes/buster64/versions/10.20210409.1/providers/libvirt.box"
