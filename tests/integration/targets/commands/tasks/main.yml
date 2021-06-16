@@ -1,12 +1,6 @@
----
 # 0: clean existing
-- include_tasks:
+- import_tasks:
     file: 0_clean_existing.yml
-    apply:
-      tags:
-        - clean_existing
-  tags:
-    - clean_existing
 
 # config
 - name: Add two vms to the Vagrantfile

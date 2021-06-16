@@ -1,37 +1,58 @@
+- name: check that a Vagrantfile exists
+  stat:
+    path: ./Vagrantfile
+  register: vagrantfile_stat
 
-- name: List existing vms
-  jclaveau.vagrant.status:
-  register: vagrant_existing_machines
+- ansible.builtin.debug:
+    var: vagrantfile_stat
+  tags:
+  - never
+  - debug
 
-# - name: dbg up results
-#   ansible.builtin.debug:
-#     var: vagrant_existing_machines.vms
+- name: Destroy existing vms
+  tags: clean_existing
+  when: vagrantfile_stat.stat.exists
+  block:
+  - name: List existing vms
+    jclaveau.vagrant.status:
+    register: vagrant_existing_machines
 
-- name: Destroy them
-  jclaveau.vagrant.destroy:
-  args:
-    name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
-  poll: 0
-  register: async_loop
+  - name: dbg vagrant_existing_machines.vms
+    ansible.builtin.debug:
+      var: vagrant_existing_machines.vms
+    tags:
+    - never
+    - debug
 
-# - name: dbg up results
-#   ansible.builtin.debug:
-#     var: async_loop
+  - name: Destroy them
+    jclaveau.vagrant.destroy:
+    args:
+      name: "{{ item.name }}"
+    loop: "{{ vagrant_existing_machines.statuses }}"
+    async: 45
+    poll: 0
+    register: async_loop
 
-- name: wait for destroy to finish
-  async_status:
-    jid: "{{item.ansible_job_id}}"
-    mode: status
-  retries: 45
-  delay: 1
-  loop: "{{async_loop.results}}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
+  - name: dbg async_loop
+    ansible.builtin.debug:
+      var: async_loop
+    tags:
+    - never
+    - debug
 
-- name: dbg up results
-  ansible.builtin.debug:
-    var: async_loop_jobs
+  - name: wait for destroy to finish
+    async_status:
+      jid: "{{item.ansible_job_id}}"
+      mode: status
+    retries: 45
+    delay: 1
+    loop: "{{async_loop.results}}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
 
-# - fail:
+  - name: dbg async_loop_jobs
+    ansible.builtin.debug:
+      var: async_loop_jobs
+    tags:
+    - never
+    - debug
