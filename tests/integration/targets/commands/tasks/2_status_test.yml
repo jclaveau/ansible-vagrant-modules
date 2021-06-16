@@ -1,12 +1,12 @@
-  - name: the two machines must be running
-    jclaveau.vagrant.up:
-    args:
-      name: "{{ item }}"
-    loop:
-      - "srv001"
-      - "srv002"
-    async: 90
-    poll: 0
+- name: the two machines must be running
+  jclaveau.vagrant.up:
+  args:
+    name: "{{ item }}"
+  loop:
+    - "srv001"
+    - "srv002"
+  async: 90
+  poll: 0
 
 # Case 0: with no vm name
 - name: Retrieve de statuses of all vms
