@@ -58,7 +58,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -78,10 +78,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs results
+- set_fact:
+    suspend_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg suspend_result
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: suspend_result
   tags:
    - never
    - debug
@@ -89,22 +93,22 @@
 - name: Vagrant suspend should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is changed
+      - suspend_result is success
+      - suspend_result is changed
 
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "running"
-      - async_loop_jobs.results[0].status_after == "saved"
-      - 'async_loop_jobs.results[0].stdout_lines == ["==> srv001: Saving VM state and suspending execution..."]'
-      - async_loop_jobs.results[0].stderr_lines == []
+      - suspend_result.results[0] is success
+      - suspend_result.results[0] is changed
+      - suspend_result.results[0].duration > 0
+      - suspend_result.results[0].status_before == "running"
+      - suspend_result.results[0].status_after == "saved"
+      - 'suspend_result.results[0].stdout_lines == ["==> srv001: Saving VM state and suspending execution..."]'
+      - suspend_result.results[0].stderr_lines == []
 
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "running"
-      - async_loop_jobs.results[1].status_after == "saved"
-      - 'async_loop_jobs.results[1].stdout_lines == ["==> srv002: Saving VM state and suspending execution..."]'
-      - async_loop_jobs.results[1].stderr_lines == []
+      - suspend_result.results[1] is success
+      - suspend_result.results[1] is changed
+      - suspend_result.results[1].duration > 0
+      - suspend_result.results[1].status_before == "running"
+      - suspend_result.results[1].status_after == "saved"
+      - 'suspend_result.results[1].stdout_lines == ["==> srv002: Saving VM state and suspending execution..."]'
+      - suspend_result.results[1].stderr_lines == []
 

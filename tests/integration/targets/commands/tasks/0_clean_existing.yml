@@ -29,7 +29,7 @@
     args:
       name: "{{ item.name }}"
     loop: "{{ vagrant_existing_machines.statuses }}"
-    async: 45
+    async: "{{ 45 if async_enabled else 0 }}"
     poll: 0
     register: async_loop
 
@@ -49,10 +49,23 @@
     loop: "{{async_loop.results}}"
     register: async_loop_jobs
     until: async_loop_jobs.finished
+    when: async_enabled
 
-  - name: dbg async_loop_jobs
+  - set_fact:
+      destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+  - name: dbg destroy_result
     ansible.builtin.debug:
-      var: async_loop_jobs
+      var: destroy_result
     tags:
     - never
     - debug
+
+  - name: Remove files
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+     - Vagrantfile
+     - vagrant-hosts.yml
+     - vagrant-groups.yml

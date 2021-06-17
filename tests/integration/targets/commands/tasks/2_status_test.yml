@@ -5,8 +5,30 @@
   loop:
     - "srv001"
     - "srv002"
-  async: 90
+  async: "{{ 90 if async_enabled else 0 }}"
   poll: 0
+  register: async_loop
+
+- name: wait for up to finish
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+    mode: status
+  retries: 90
+  delay: 1
+  loop: "{{ async_loop.results }}"
+  register: async_loop_jobs
+  until: async_loop_jobs.finished
+  when: async_enabled
+
+- set_fact:
+    up_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg up_result before status tests
+  ansible.builtin.debug:
+    var: up_result
+  tags:
+   - never
+   - debug
 
 # Case 0: with no vm name
 - name: Retrieve de statuses of all vms

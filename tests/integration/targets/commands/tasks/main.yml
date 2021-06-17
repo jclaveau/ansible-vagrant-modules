@@ -1,24 +1,13 @@
-- name: Debug vars
-  debug:
-    var: vars
+- set_fact:
+    async_enabled: "{{ vars.ansible_env.HOME != '/Users/runner' }}"
+  tags:
+   - always
 
-- name: Debug environment
+- name: Is async enabled? # Ansible's async tasks never finish on MacOS in Github Actions
   debug:
-    var: environment
-
-- name: Debug group_names
-  debug:
-    var: group_names
-
-- name: Debug groups
-  debug:
-    var: groups
-
-- name: Debug hostvars
-  debug:
-    var: hostvars
-
-- fail:
+    var: async_enabled
+  tags:
+   - always
 
 # 0: clean existing
 - import_tasks:
@@ -52,6 +41,10 @@
     index_var: "i"
   tags:
     - always
+
+# - fail:
+#   tags:
+#    - always
 
 # 1: up
 - import_tasks:

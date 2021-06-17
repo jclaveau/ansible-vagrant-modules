@@ -54,14 +54,14 @@
       - srv001
       - srv002
 
-  - name: Start the 2 vagrant instances asynchronously
+  - name: Start the 2 vagrant instances (asynchronously if enabled)
     jclaveau.vagrant.up:
     args:
       name: "{{ item }}"
     loop:
       - "srv001"
       - "srv002"
-    async: 90  # async is used to make tests faster and illustrate an optimized
+    async: "{{ 90 if async_enabled else 0 }}"
     poll: 0
     register: async_loop
 
@@ -74,31 +74,35 @@
 
   - name: wait for up to finish
     async_status:
-      jid: "{{item.ansible_job_id}}"
+      jid: "{{ item.ansible_job_id }}"
       mode: status
-    retries: 999
+    retries: 120
     delay: 1
     loop: "{{async_loop.results}}"
     register: async_loop_jobs
     until: async_loop_jobs.finished
+    when: async_enabled
+
+  - set_fact:
+      up_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
   - name: dbg up results
     ansible.builtin.debug:
-      var: async_loop_jobs
+      var: up_result
 
   - name: Vagrant up should succeed
     assert:
       that:
-        - async_loop_jobs is success
-        - async_loop_jobs is changed
-        - async_loop_jobs.results[0].duration > 0
-        - async_loop_jobs.results[0].status_before == "not_created"
-        - async_loop_jobs.results[0].status_after == "running"
-        - async_loop_jobs.results[1].duration > 0
-        - async_loop_jobs.results[1].status_before == "not_created"
-        - async_loop_jobs.results[1].status_after == "running"
-        - '"==> srv001: Booting VM..." in async_loop_jobs.results[0].stdout_lines'
-        - '"==> srv002: Booting VM..." in async_loop_jobs.results[1].stdout_lines'
+        - up_result is success
+        - up_result is changed
+        - up_result.results[0].duration > 0
+        - up_result.results[0].status_before == "not_created"
+        - up_result.results[0].status_after == "running"
+        - up_result.results[1].duration > 0
+        - up_result.results[1].status_before == "not_created"
+        - up_result.results[1].status_after == "running"
+        - '"==> srv001: Booting VM..." in up_result.results[0].stdout_lines'
+        - '"==> srv002: Booting VM..." in up_result.results[1].stdout_lines'
 
   # Case 3: with provisioning forced
   - name: destroy srv002

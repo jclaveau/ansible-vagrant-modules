@@ -58,7 +58,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -78,10 +78,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs results
+- set_fact:
+    resume_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg resume_result
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: resume_result
   tags:
    - never
    - debug
@@ -89,26 +93,26 @@
 - name: Vagrant resume should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is changed
+      - resume_result is success
+      - resume_result is changed
 
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "saved"
-      - async_loop_jobs.results[0].status_after == "running"
-      - '"==> srv001: Resuming suspended VM..." in async_loop_jobs.results[0].stdout_lines'
-      - '"==> srv001: Machine booted and ready!" in async_loop_jobs.results[0].stdout_lines'
-      - async_loop_jobs.results[0].stderr_lines == []
+      - resume_result.results[0] is success
+      - resume_result.results[0] is changed
+      - resume_result.results[0].duration > 0
+      - resume_result.results[0].status_before == "saved"
+      - resume_result.results[0].status_after == "running"
+      - '"==> srv001: Resuming suspended VM..." in resume_result.results[0].stdout_lines'
+      - '"==> srv001: Machine booted and ready!" in resume_result.results[0].stdout_lines'
+      - resume_result.results[0].stderr_lines == []
 
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "saved"
-      - async_loop_jobs.results[1].status_after == "running"
-      - '"==> srv002: Resuming suspended VM..." in async_loop_jobs.results[1].stdout_lines'
-      - '"==> srv002: Machine booted and ready!" in async_loop_jobs.results[1].stdout_lines'
-      - async_loop_jobs.results[1].stderr_lines == []
+      - resume_result.results[1] is success
+      - resume_result.results[1] is changed
+      - resume_result.results[1].duration > 0
+      - resume_result.results[1].status_before == "saved"
+      - resume_result.results[1].status_after == "running"
+      - '"==> srv002: Resuming suspended VM..." in resume_result.results[1].stdout_lines'
+      - '"==> srv002: Machine booted and ready!" in resume_result.results[1].stdout_lines'
+      - resume_result.results[1].stderr_lines == []
 
 # Case 3: Idempotence
 - name: re-resume them
@@ -116,7 +120,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -136,10 +140,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs for re-resume
+- set_fact:
+    resume_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg resume_result for re-resume
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: resume_result
   tags:
    - never
    - debug
@@ -147,22 +155,22 @@
 - name: Vagrant re-resume should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is not changed
+      - resume_result is success
+      - resume_result is not changed
 
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is not changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "running"
-      - async_loop_jobs.results[0].status_after == "running"
-      - async_loop_jobs.results[0].stdout_lines == []
-      - async_loop_jobs.results[0].stderr_lines == []
+      - resume_result.results[0] is success
+      - resume_result.results[0] is not changed
+      - resume_result.results[0].duration > 0
+      - resume_result.results[0].status_before == "running"
+      - resume_result.results[0].status_after == "running"
+      - resume_result.results[0].stdout_lines == []
+      - resume_result.results[0].stderr_lines == []
 
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is not changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "running"
-      - async_loop_jobs.results[1].status_after == "running"
-      - async_loop_jobs.results[1].stdout_lines == []
-      - async_loop_jobs.results[1].stderr_lines == []
+      - resume_result.results[1] is success
+      - resume_result.results[1] is not changed
+      - resume_result.results[1].duration > 0
+      - resume_result.results[1].status_before == "running"
+      - resume_result.results[1].status_after == "running"
+      - resume_result.results[1].stdout_lines == []
+      - resume_result.results[1].stderr_lines == []
 

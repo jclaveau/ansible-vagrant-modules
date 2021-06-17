@@ -58,7 +58,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -78,10 +78,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs results
+- set_fact:
+    destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg destroy_result
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: destroy_result
   tags:
    - never
    - debug
@@ -89,26 +93,26 @@
 - name: Vagrant destroy should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is changed
+      - destroy_result is success
+      - destroy_result is changed
 
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "poweroff"
-      - async_loop_jobs.results[0].status_after == "not_created"
-      # - '"==> srv001: Forcing shutdown of VM..." in async_loop_jobs.results[0].stdout_lines' Only if running before
-      - '"==> srv001: Destroying VM and associated drives..." in async_loop_jobs.results[0].stdout_lines'
-      - async_loop_jobs.results[0].stderr_lines == []
+      - destroy_result.results[0] is success
+      - destroy_result.results[0] is changed
+      - destroy_result.results[0].duration > 0
+      - destroy_result.results[0].status_before == "poweroff"
+      - destroy_result.results[0].status_after == "not_created"
+      # - '"==> srv001: Forcing shutdown of VM..." in destroy_result.results[0].stdout_lines' Only if running before
+      - '"==> srv001: Destroying VM and associated drives..." in destroy_result.results[0].stdout_lines'
+      - destroy_result.results[0].stderr_lines == []
 
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "poweroff"
-      - async_loop_jobs.results[1].status_after == "not_created"
-      # - '"==> srv002: Forcing shutdown of VM..." in async_loop_jobs.results[1].stdout_lines'  Only if running before
-      - '"==> srv002: Destroying VM and associated drives..." in async_loop_jobs.results[1].stdout_lines'
-      - async_loop_jobs.results[1].stderr_lines == []
+      - destroy_result.results[1] is success
+      - destroy_result.results[1] is changed
+      - destroy_result.results[1].duration > 0
+      - destroy_result.results[1].status_before == "poweroff"
+      - destroy_result.results[1].status_after == "not_created"
+      # - '"==> srv002: Forcing shutdown of VM..." in destroy_result.results[1].stdout_lines'  Only if running before
+      - '"==> srv002: Destroying VM and associated drives..." in destroy_result.results[1].stdout_lines'
+      - destroy_result.results[1].stderr_lines == []
 
 # Case 3: idempotence
 - name: re-destroy them
@@ -116,7 +120,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -136,10 +140,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs for re-destroy
+- set_fact:
+    destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg destroy_result for re-destroy
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: destroy_result
   tags:
    - never
    - debug
@@ -147,22 +155,22 @@
 - name: Vagrant re-destroy should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is not changed
+      - destroy_result is success
+      - destroy_result is not changed
 
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is not changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "not_created"
-      - async_loop_jobs.results[0].status_after == "not_created"
-      - async_loop_jobs.results[0].stderr_lines == []
-      - async_loop_jobs.results[0].stdout_lines == []
+      - destroy_result.results[0] is success
+      - destroy_result.results[0] is not changed
+      - destroy_result.results[0].duration > 0
+      - destroy_result.results[0].status_before == "not_created"
+      - destroy_result.results[0].status_after == "not_created"
+      - destroy_result.results[0].stderr_lines == []
+      - destroy_result.results[0].stdout_lines == []
 
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is not changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "not_created"
-      - async_loop_jobs.results[1].status_after == "not_created"
-      - async_loop_jobs.results[1].stderr_lines == []
-      - async_loop_jobs.results[1].stdout_lines == []
+      - destroy_result.results[1] is success
+      - destroy_result.results[1] is not changed
+      - destroy_result.results[1].duration > 0
+      - destroy_result.results[1].status_before == "not_created"
+      - destroy_result.results[1].status_after == "not_created"
+      - destroy_result.results[1].stderr_lines == []
+      - destroy_result.results[1].stdout_lines == []
 

@@ -58,7 +58,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -78,10 +78,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs results
+- set_fact:
+    halt_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg halt_result for re-halt
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: halt_result
   tags:
    - never
    - debug
@@ -89,24 +93,22 @@
 - name: Vagrant halt should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is changed
-
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "running"
-      - async_loop_jobs.results[0].status_after == "poweroff"
-      - '"==> srv001: Attempting graceful shutdown of VM..." in async_loop_jobs.results[0].stdout_lines'
-      - async_loop_jobs.results[0].stderr_lines == []
-
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "running"
-      - async_loop_jobs.results[1].status_after == "poweroff"
-      - '"==> srv002: Attempting graceful shutdown of VM..." in async_loop_jobs.results[1].stdout_lines'
-      - async_loop_jobs.results[1].stderr_lines == []
+      - halt_result is success
+      - halt_result is changedhalt_result
+      - halt_result.results[0] is success
+      - halt_result.results[0] is changed
+      - halt_result.results[0].duration > 0
+      - halt_result.results[0].status_before == "running"
+      - halt_result.results[0].status_after == "poweroff"
+      - '"==> srv001: Attempting graceful shutdown of VM..." in halt_result.results[0].stdout_lines'
+      - halt_result.results[0].stderr_lines == []halt_result
+      - halt_result.results[1] is success
+      - halt_result.results[1] is changed
+      - halt_result.results[1].duration > 0
+      - halt_result.results[1].status_before == "running"
+      - halt_result.results[1].status_after == "poweroff"
+      - '"==> srv002: Attempting graceful shutdown of VM..." in halt_result.results[1].stdout_lines'
+      - halt_result.results[1].stderr_lines == []
 
 # Case 3: idempotence
 - name: re-halt them
@@ -114,7 +116,7 @@
   args:
     name: "{{ item.name }}"
   loop: "{{ vagrant_existing_machines.statuses }}"
-  async: 45
+  async: "{{ 45 if async_enabled else 0 }}"
   poll: 0
   register: async_loop
 
@@ -134,10 +136,14 @@
   loop: "{{ async_loop.results }}"
   register: async_loop_jobs
   until: async_loop_jobs.finished
+  when: async_enabled
 
-- name: dbg async_loop_jobs for re-halt
+- set_fact:
+    halt_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+
+- name: dbg halt_result for re-halt
   ansible.builtin.debug:
-    var: async_loop_jobs
+    var: halt_result
   tags:
    - never
    - debug
@@ -145,22 +151,20 @@
 - name: Vagrant re-halt should succeed
   assert:
     that:
-      - async_loop_jobs is success
-      - async_loop_jobs is not changed
-
-      - async_loop_jobs.results[0] is success
-      - async_loop_jobs.results[0] is not changed
-      - async_loop_jobs.results[0].duration > 0
-      - async_loop_jobs.results[0].status_before == "poweroff"
-      - async_loop_jobs.results[0].status_after == "poweroff"
-      - async_loop_jobs.results[0].stderr_lines == []
-      - async_loop_jobs.results[0].stdout_lines == []
-
-      - async_loop_jobs.results[1] is success
-      - async_loop_jobs.results[1] is not changed
-      - async_loop_jobs.results[1].duration > 0
-      - async_loop_jobs.results[1].status_before == "poweroff"
-      - async_loop_jobs.results[1].status_after == "poweroff"
-      - async_loop_jobs.results[1].stderr_lines == []
-      - async_loop_jobs.results[1].stdout_lines == []
+      - halt_result is success
+      - halt_result is not changedhalt_result
+      - halt_result.results[0] is success
+      - halt_result.results[0] is not changed
+      - halt_result.results[0].duration > 0
+      - halt_result.results[0].status_before == "poweroff"
+      - halt_result.results[0].status_after == "poweroff"
+      - halt_result.results[0].stderr_lines == []
+      - halt_result.results[0].stdout_lines == []halt_result
+      - halt_result.results[1] is success
+      - halt_result.results[1] is not changed
+      - halt_result.results[1].duration > 0
+      - halt_result.results[1].status_before == "poweroff"
+      - halt_result.results[1].status_after == "poweroff"
+      - halt_result.results[1].stderr_lines == []
+      - halt_result.results[1].stdout_lines == []
 
