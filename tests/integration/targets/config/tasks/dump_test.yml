@@ -1,7 +1,6 @@
 # Dump the config of all vms
 - name: Dump all vms
   jclaveau.vagrant.config:
-  args:
   register: vagrant_config_dump_results
 
 - name: dbg dump results
