@@ -4,5 +4,5 @@
 # git config core.hooksPath .githooks
 
 # run from the root of the repo
-# .githooks/replace_by_git_vars.py readme.md README.md -v
 .githooks/replace_by_git_vars.py readme.md README.md
+.githooks/copy_vagranfile_content_to_python.py
