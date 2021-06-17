@@ -24,26 +24,26 @@
       - ssh_config_result.ssh_configs[0].Host == "srv001"
       - ssh_config_result.ssh_configs[0].HostName == "127.0.0.1"
       - ssh_config_result.ssh_configs[0].IdentitiesOnly == "yes"
-      - ssh_config_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
+      # - ssh_config_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
       - ssh_config_result.ssh_configs[0].LogLevel == "FATAL"
       - ssh_config_result.ssh_configs[0].PasswordAuthentication == "no"
-      - ssh_config_result.ssh_configs[0].Port == "2200"
+      - ssh_config_result.ssh_configs[0].Port == "2290"
       - ssh_config_result.ssh_configs[0].StrictHostKeyChecking == "no"
       - ssh_config_result.ssh_configs[0].User == "vagrant"
       - ssh_config_result.ssh_configs[0].UserKnownHostsFile == "/dev/null"
-      - ssh_config_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2200 -i /home/jean/.vagrant.d/insecure_private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
+      - ssh_config_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2290 -i {{ ssh_config_result.ssh_configs[0].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
 
       - ssh_config_result.ssh_configs[1].Host == "srv002"
       - ssh_config_result.ssh_configs[1].HostName == "127.0.0.1"
       - ssh_config_result.ssh_configs[1].IdentitiesOnly == "yes"
-      - ssh_config_result.ssh_configs[1].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
+      # - ssh_config_result.ssh_configs[1].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
       - ssh_config_result.ssh_configs[1].LogLevel == "FATAL"
       - ssh_config_result.ssh_configs[1].PasswordAuthentication == "no"
-      - ssh_config_result.ssh_configs[1].Port == "2201"
+      - ssh_config_result.ssh_configs[1].Port == "2291"
       - ssh_config_result.ssh_configs[1].StrictHostKeyChecking == "no"
       - ssh_config_result.ssh_configs[1].User == "vagrant"
       - ssh_config_result.ssh_configs[1].UserKnownHostsFile == "/dev/null"
-      - ssh_config_result.ssh_configs[1].command == "ssh vagrant@127.0.0.1 -p 2201 -i /home/jean/.vagrant.d/insecure_private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
+      - ssh_config_result.ssh_configs[1].command == "ssh vagrant@127.0.0.1 -p 2291 -i {{ ssh_config_result.ssh_configs[1].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
 
 # Case 1: with a name
 - name: Retrieve the ssh_config of srv002
@@ -72,14 +72,14 @@
       - ssh_config_srv002_result.ssh_configs[0].Host == "srv002"
       - ssh_config_srv002_result.ssh_configs[0].HostName == "127.0.0.1"
       - ssh_config_srv002_result.ssh_configs[0].IdentitiesOnly == "yes"
-      - ssh_config_srv002_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
+      # - ssh_config_srv002_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
       - ssh_config_srv002_result.ssh_configs[0].LogLevel == "FATAL"
       - ssh_config_srv002_result.ssh_configs[0].PasswordAuthentication == "no"
-      - ssh_config_srv002_result.ssh_configs[0].Port == "2201"
+      - ssh_config_srv002_result.ssh_configs[0].Port == "2291"
       - ssh_config_srv002_result.ssh_configs[0].StrictHostKeyChecking == "no"
       - ssh_config_srv002_result.ssh_configs[0].User == "vagrant"
       - ssh_config_srv002_result.ssh_configs[0].UserKnownHostsFile == "/dev/null"
-      - ssh_config_srv002_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2201 -i /home/jean/.vagrant.d/insecure_private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
+      - ssh_config_srv002_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2291 -i {{ ssh_config_srv002_result.ssh_configs[0].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
 
 # Case 2: with a bad name
 - name: Retrieve the ssh_config of srv002
@@ -103,7 +103,6 @@
       - ssh_config_bad_result is not changed
       - ssh_config_bad_result.stdout_lines == []
       - ssh_config_bad_result.stderr_lines == ["The machine with the name 'not_a_vm' was not found configured for", "this Vagrant environment."]
-      # - ssh_config_bad_result.duration > 0
 
 # Case 2: Test SSH connection
 - name: SSH connection to them

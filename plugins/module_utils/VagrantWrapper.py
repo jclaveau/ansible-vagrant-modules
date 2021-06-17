@@ -3,12 +3,12 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.Helpers import *
+# from ansible_collections.jclaveau.vagrant.plugins.module_utils.Helpers import print_err
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.exceptions import MachineNotFound
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.exceptions import NotImplementedInPythonVagrantError
+from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
 import os.path
-# import ast
 import traceback
 import tempfile
 import re
@@ -23,6 +23,7 @@ except ImportError as e:
     # VAGRANT_LIBRARY_IMPORT_ERROR = traceback.format_exc()
 else:
     HAS_VAGRANT_LIBRARY = True
+
 
 class VagrantWrapper(object):
 
@@ -153,11 +154,14 @@ class VagrantWrapper(object):
             for output in outputs:
                 config = self.vg.conf(output)
 
-                #   "-o NoHostAuthenticationForLocalhost=%s "
+                # This option avoids "Warning: Permanently added '[127.0.0.1]:2291' (ECDSA) to the list of known hosts."
+                config["NoHostAuthenticationForLocalhost"] = "yes"
+
                 sshcmd = ("ssh %s@%s -p %s -i %s "
                           "-o StrictHostKeyChecking=%s "
                           "-o UserKnownHostsFile=%s "
-                          "-o IdentitiesOnly=%s"
+                          "-o IdentitiesOnly=%s "
+                          "-o NoHostAuthenticationForLocalhost=%s"
                           ) % (
                               config["User"],
                               config["HostName"],
@@ -165,7 +169,8 @@ class VagrantWrapper(object):
                               config["IdentityFile"],
                               config["StrictHostKeyChecking"],
                               config["UserKnownHostsFile"],
-                              config["IdentitiesOnly"])
+                              config["IdentitiesOnly"],
+                              config["NoHostAuthenticationForLocalhost"])
                 config['command'] = sshcmd
                 ssh_configs.append(config)
 
@@ -193,8 +198,7 @@ class VagrantWrapper(object):
         end = round(time.time(), 2)
         return (changed,  end - start)
 
-    def up(self, name=None, no_provision=False, provider=None,
-           provision=None, provision_with=None, parallel=False):
+    def up(self, name=None, provider=None, provision=None, provision_with=None):
         """
         Fire up a given VM and name it, using vagrant's multi-VM mode.
             def up(self, no_provision=False, provider=None, vm_name=None,
@@ -209,15 +213,15 @@ class VagrantWrapper(object):
             try:
                 self.vg.up(
                     vm_name=name,
-                    no_provision=no_provision,
                     provider=provider,
                     provision=provision,
                     provision_with=provision_with,
                     stream_output=False  # !!! Produces error in Ansible if true "AttributeError: 'list' object has no attribute 'splitlines'"
                 )
             except subprocess.CalledProcessError as e:
-                print(e)
-                quit()
+                if not e.stdout:
+                    self.fail_module(e)
+
                 stderr_parts = e.stdout.split(b',')
                 stderr = stderr_parts[7] + b': ' + stderr_parts[8].replace(b'\\n', b' ')
                 with open(self.stderr_filename, 'a') as f:
@@ -326,4 +330,3 @@ class VagrantWrapper(object):
 
         end = round(time.time(), 2)
         return (changed, end - start, status_before['state'], status_after['state'])
-

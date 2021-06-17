@@ -117,12 +117,17 @@ end
 #  forwarded_ports:
 #    - guest: 88
 #      host: 8080
+#      id: ssh
 def forwarded_ports(vm, host)
   if host.has_key?('forwarded_ports')
-    ports = host['forwarded_ports']
 
-    ports.each do |port|
-      vm.network "forwarded_port", guest: port['guest'], host: port['host']
+    host['forwarded_ports'].each do |port_config|
+      port_options = {}
+      port_config.each do |key, value|
+        eval("port_options[:"+key+"] = value")
+      end
+
+      vm.network(:forwarded_port, **port_options)
     end
   end
 end

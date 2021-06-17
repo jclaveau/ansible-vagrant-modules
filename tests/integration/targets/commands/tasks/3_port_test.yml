@@ -42,7 +42,7 @@
       - port_result.duration > 0
       - port_result.ports | count == 3
       - port_result.ports[0].guest == 22
-      - port_result.ports[0].host == 2201
+      - port_result.ports[0].host == 2291
       - port_result.ports[1].guest == 80
       - port_result.ports[1].host == 8081
       - port_result.ports[2].guest == 443

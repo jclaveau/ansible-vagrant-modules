@@ -25,6 +25,9 @@
       # box: generic/alpine38
       cpus: 4
       forwarded_ports:
+        - host: "229{{ i }}"
+          guest: 22
+          id: ssh
         - host: "808{{ i }}"
           guest: 80
         - host: "8{{ i }}43"
@@ -32,7 +35,6 @@
       shell:
         inline: hostname
         # run: "always"
-    # log: true
   register: vagrant_config_results
   loop:
     - "srv001"
@@ -41,10 +43,7 @@
     index_var: "i"
   tags:
     - always
-
-# - fail:
-#   tags:
-#    - always
+    - config
 
 # 1: up
 - import_tasks:
@@ -120,6 +119,3 @@
         - destroy
   tags:
     - destroy
-
-# deinit
-# test up
