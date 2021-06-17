@@ -42,8 +42,8 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-vagrant-
 
-      - name: Run the integration test in a playbook
-        run: ./tests/integration_playbook/tests.sh
+      # - name: Run the integration test in a playbook
+      #   run: ./tests/integration_playbook/tests.sh
 
       - name: Run the integration tests
         run: ansible-test integration --python 3.8 --coverage --no-temp-workdir --color

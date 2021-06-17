@@ -1,3 +1,25 @@
+- name: Debug vars
+  debug:
+    var: vars
+
+- name: Debug environment
+  debug:
+    var: environment
+
+- name: Debug group_names
+  debug:
+    var: group_names
+
+- name: Debug groups
+  debug:
+    var: groups
+
+- name: Debug hostvars
+  debug:
+    var: hostvars
+
+- fail:
+
 # 0: clean existing
 - import_tasks:
     file: 0_clean_existing.yml
