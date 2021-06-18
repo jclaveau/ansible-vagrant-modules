@@ -42,7 +42,7 @@
         - ssh_result is failed
         - ssh_result is not changed
         - >
-          "Command '['/usr/bin/vagrant', 'ssh', 'non_existing_vm', '--command', 'hostname']" in ssh_result.msg
+          "Command '['{{ vagrant_path }}', 'ssh', 'non_existing_vm', '--command', 'hostname']" in ssh_result.msg
         - >
           "The machine with the name 'non_existing_vm' was not found configured for" in ssh_result.stderr_lines
         - >

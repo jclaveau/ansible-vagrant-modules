@@ -1,5 +1,6 @@
 - set_fact:
     async_enabled: "{{ vars.ansible_env.HOME != '/Users/runner' }}"
+    vagrant_path: "{{ '/usr/bin/vagrant' if vars.ansible_env.HOME != '/Users/runner' else '/usr/local/bin/vagrant' }}"
   tags:
    - always
 
