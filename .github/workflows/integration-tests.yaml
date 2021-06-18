@@ -42,23 +42,22 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-vagrant-
 
-      # - name: Run the integration test in a playbook
-      #   run: ./tests/integration_playbook/tests.sh
+      - name: Run the integration test in a playbook
+        run: ./tests/integration_playbook/tests.sh
 
       - name: Run the integration tests
-        run: ansible-test integration --python 3.8 --coverage --no-temp-workdir --color
-
-      - name: Clean buggy coverage files
-        run: scripts/clean_buggy_coverage_files.py
+        run: ansible-test integration --python 3.8 --coverage --color
 
       - name: Prepare coverage for Codecov.io
         run: ansible-test coverage xml --color
 
-      # https://github.com/marketplace/actions/codecov
-      - uses: codecov/codecov-action@v1
+      - name: Check coverage.xml
+        run: ls tests/output/reports/
+
+      - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          directory: ./tests/output/reports/ # optional
+          directory: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
           flags: integrationtests # optional
           name: codecov-vagrant-collection-integration-tests # optional
           fail_ci_if_error: true # optional (default = false)
