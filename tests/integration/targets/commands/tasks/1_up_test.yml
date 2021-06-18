@@ -45,6 +45,65 @@
         - >
           "Vagrant::Errors::MachineNotFound: The machine with the name 'non_existing_vm' was not found configured for this Vagrant environment." in up_result.stderr_lines
 
+  # Case: with a bad provider. It will fail as the box doesn't exists and so test the support of provider parameter AND error handling
+  - name: up with a different provider
+    jclaveau.vagrant.up:
+    args:
+      name: srv002
+      provider: docker
+    register: up_srv002_result
+    ignore_errors: true
+
+  - name: dbg up_result
+    ansible.builtin.debug:
+      var: up_srv002_result
+    tags:
+    - never
+    - debug
+
+  - name: check that Docker is installed
+    ansible.builtin.shell: docker --version
+    ignore_errors: true
+    register: docker_version_result
+
+  - name: Vagrant up with docker as provider should fail as the box doesn't exist for docker
+    assert:
+      that:
+        - up_srv002_result is failed
+        - up_srv002_result is not changed
+        - >
+          "Bringing machine 'srv002' up with 'docker' provider..." in up_srv002_result.stdout_lines
+        - >
+          "==> srv002: Box 'debian/buster64' could not be found. Attempting to find and install..." in up_srv002_result.stdout_lines
+
+        - >
+          "The box you're attempting to add doesn't support the provider" in up_srv002_result.stderr_lines
+        - >
+          "you requested. Please find an alternate box or use an alternate" in up_srv002_result.stderr_lines
+        - >
+          "provider. Double-check your requested provider to verify you didn't" in up_srv002_result.stderr_lines
+        - >
+          "simply misspell it." in up_srv002_result.stderr_lines
+        - >
+          "Name: debian/buster64" in up_srv002_result.stderr_lines
+        - >
+          "Address: https://vagrantcloud.com/debian/buster64" in up_srv002_result.stderr_lines
+        - >
+          "Requested provider: [:docker]" in up_srv002_result.stderr_lines
+    when: docker_version_result is success
+
+
+  - name: Vagrant up with docker as provider should fail as the box doesn't exist for docker
+    assert:
+      that:
+        - up_srv002_result is failed
+        - up_srv002_result is not changed
+        - >
+          "The executable 'docker' Vagrant is trying to run was not" in up_srv002_result.stderr_lines
+        - >
+          "found in the PATH variable. This is an error. Please verify" in up_srv002_result.stderr_lines
+    when: docker_version_result is failed
+
   # Case 2: up 2 machines
   - name: destroy srv002 and srv001
     jclaveau.vagrant.destroy:
@@ -203,48 +262,3 @@
         - up_srv002_result.stderr_lines == []
         - up_srv002_result.stdout_lines == []
 
-  # Case: with another provider. It will fail as the box doesn't exists and so test the support of provider parameter AND error handling
-  - name: destroy srv002 to test provider parameter
-    jclaveau.vagrant.destroy:
-    args:
-      name: srv002
-
-  - name: up with a different provider
-    jclaveau.vagrant.up:
-    args:
-      name: srv002
-      provider: docker
-    register: up_srv002_result
-    ignore_errors: true
-
-  - name: dbg up_result
-    ansible.builtin.debug:
-      var: up_srv002_result
-    tags:
-    - never
-    - debug
-
-  - name: Vagrant up with docker as provider should fail as the box doesn't exist for docker
-    assert:
-      that:
-        - up_srv002_result is failed
-        - up_srv002_result is not changed
-        - >
-          "Bringing machine 'srv002' up with 'docker' provider..." in up_srv002_result.stdout_lines
-        - >
-          "==> srv002: Box 'debian/buster64' could not be found. Attempting to find and install..." in up_srv002_result.stdout_lines
-
-        - >
-          "The box you're attempting to add doesn't support the provider" in up_srv002_result.stderr_lines
-        - >
-          "you requested. Please find an alternate box or use an alternate" in up_srv002_result.stderr_lines
-        - >
-          "provider. Double-check your requested provider to verify you didn't" in up_srv002_result.stderr_lines
-        - >
-          "simply misspell it." in up_srv002_result.stderr_lines
-        - >
-          "Name: debian/buster64" in up_srv002_result.stderr_lines
-        - >
-          "Address: https://vagrantcloud.com/debian/buster64" in up_srv002_result.stderr_lines
-        - >
-          "Requested provider: [:docker]" in up_srv002_result.stderr_lines
