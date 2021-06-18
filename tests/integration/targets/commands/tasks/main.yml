@@ -50,31 +50,16 @@
     file: 1_up_test.yml
 
 # 2: status
-- include_tasks:
+- import_tasks:
     file: 2_status_test.yml
-    apply:
-      tags:
-        - status
-  tags:
-    - status
 
 # 3: port
-- include_tasks:
+- import_tasks:
     file: 3_port_test.yml
-    apply:
-      tags:
-        - port
-  tags:
-    - port
 
 # 4: ssh-config
-- include_tasks:
+- import_tasks:
     file: 4_ssh_config_test.yml
-    apply:
-      tags:
-        - ssh_config
-  tags:
-    - ssh_config
 
 # 4.1: ssh
 - import_tasks:
@@ -85,37 +70,17 @@
     file: 4.2_reload_test.yml
 
 # 5: suspend
-- include_tasks:
+- import_tasks:
     file: 5_suspend_test.yml
-    apply:
-      tags:
-        - suspend
-  tags:
-    - suspend
 
 # 6: resume
-- include_tasks:
+- import_tasks:
     file: 6_resume_test.yml
-    apply:
-      tags:
-        - resume
-  tags:
-    - resume
 
 # 7: halt
-- include_tasks:
+- import_tasks:
     file: 7_halt_test.yml
-    apply:
-      tags:
-        - halt
-  tags:
-    - halt
 
 # 8: destroy
-- include_tasks:
+- import_tasks:
     file: 8_destroy_test.yml
-    apply:
-      tags:
-        - destroy
-  tags:
-    - destroy

@@ -1,176 +1,179 @@
-# Case 0: missing name parameter
-- name: destroy them
-  jclaveau.vagrant.destroy:
-  register: destroy_result
-  ignore_errors: true
+- name: destroy tasks
+  tags: destroy
+  block:
+  # Case 0: missing name parameter
+  - name: destroy them
+    jclaveau.vagrant.destroy:
+    register: destroy_result
+    ignore_errors: true
 
-- name: dbg destroy_result
-  ansible.builtin.debug:
-    var: destroy_result
-  tags:
-   - never
-   - debug
+  - name: dbg destroy_result
+    ansible.builtin.debug:
+      var: destroy_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant destroy should fail
-  assert:
-    that:
-      - destroy_result is failed
-      - destroy_result is not changed
-      - "destroy_result.msg == 'missing required arguments: name'"
+  - name: Vagrant destroy should fail
+    assert:
+      that:
+        - destroy_result is failed
+        - destroy_result is not changed
+        - "destroy_result.msg == 'missing required arguments: name'"
 
-# Case 1: destroying a non existing vm
-- name: destroy them
-  jclaveau.vagrant.destroy:
-  args:
-    name: "i_do_not_exist"
-  register: destroy_result
-  ignore_errors: true
+  # Case 1: destroying a non existing vm
+  - name: destroy them
+    jclaveau.vagrant.destroy:
+    args:
+      name: "i_do_not_exist"
+    register: destroy_result
+    ignore_errors: true
 
-- name: dbg destroy_result
-  ansible.builtin.debug:
-    var: destroy_result
-  tags:
-   - never
-   - debug
+  - name: dbg destroy_result
+    ansible.builtin.debug:
+      var: destroy_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant destroy should fail
-  assert:
-    that:
-      - destroy_result is failed
-      - destroy_result is not changed
-      - >
-        "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in destroy_result.stderr_lines
+  - name: Vagrant destroy should fail
+    assert:
+      that:
+        - destroy_result is failed
+        - destroy_result is not changed
+        - >
+          "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in destroy_result.stderr_lines
 
-# Case 2: destroying the two vms
-- name: List existing vms
-  jclaveau.vagrant.status:
-  register: vagrant_existing_machines
+  # Case 2: destroying the two vms
+  - name: List existing vms
+    jclaveau.vagrant.status:
+    register: vagrant_existing_machines
 
-- name: dbg vagrant_existing_machines
-  ansible.builtin.debug:
-    var: vagrant_existing_machines.statuses
-  tags:
-   - never
-   - debug
+  - name: dbg vagrant_existing_machines
+    ansible.builtin.debug:
+      var: vagrant_existing_machines.statuses
+    tags:
+    - never
+    - debug
 
-- name: destroy them
-  jclaveau.vagrant.destroy:
-  args:
-    name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.statuses }}"
-  async: "{{ 45 if async_enabled else 0 }}"
-  poll: 0
-  register: async_loop
+  - name: destroy them
+    jclaveau.vagrant.destroy:
+    args:
+      name: "{{ item.name }}"
+    loop: "{{ vagrant_existing_machines.statuses }}"
+    async: "{{ 45 if async_enabled else 0 }}"
+    poll: 0
+    register: async_loop
 
-- name: dbg async_loop results
-  ansible.builtin.debug:
-    var: async_loop
-  tags:
-   - never
-   - debug
+  - name: dbg async_loop results
+    ansible.builtin.debug:
+      var: async_loop
+    tags:
+    - never
+    - debug
 
-- name: wait for destroy to finish
-  async_status:
-    jid: "{{ item.ansible_job_id }}"
-    mode: status
-  retries: 45
-  delay: 1
-  loop: "{{ async_loop.results }}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
-  when: async_enabled
+  - name: wait for destroy to finish
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+      mode: status
+    retries: 45
+    delay: 1
+    loop: "{{ async_loop.results }}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
+    when: async_enabled
 
-- set_fact:
-    destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+  - set_fact:
+      destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
-- name: dbg destroy_result
-  ansible.builtin.debug:
-    var: destroy_result
-  tags:
-   - never
-   - debug
+  - name: dbg destroy_result
+    ansible.builtin.debug:
+      var: destroy_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant destroy should succeed
-  assert:
-    that:
-      - destroy_result is success
-      - destroy_result is changed
+  - name: Vagrant destroy should succeed
+    assert:
+      that:
+        - destroy_result is success
+        - destroy_result is changed
 
-      - destroy_result.results[0] is success
-      - destroy_result.results[0] is changed
-      - destroy_result.results[0].duration > 0
-      - destroy_result.results[0].status_before == "poweroff"
-      - destroy_result.results[0].status_after == "not_created"
-      # - '"==> srv001: Forcing shutdown of VM..." in destroy_result.results[0].stdout_lines' Only if running before
-      - '"==> srv001: Destroying VM and associated drives..." in destroy_result.results[0].stdout_lines'
-      - destroy_result.results[0].stderr_lines == []
+        - destroy_result.results[0] is success
+        - destroy_result.results[0] is changed
+        - destroy_result.results[0].duration > 0
+        - destroy_result.results[0].status_before == "poweroff"
+        - destroy_result.results[0].status_after == "not_created"
+        # - '"==> srv001: Forcing shutdown of VM..." in destroy_result.results[0].stdout_lines' Only if running before
+        - '"==> srv001: Destroying VM and associated drives..." in destroy_result.results[0].stdout_lines'
+        - destroy_result.results[0].stderr_lines == []
 
-      - destroy_result.results[1] is success
-      - destroy_result.results[1] is changed
-      - destroy_result.results[1].duration > 0
-      - destroy_result.results[1].status_before == "poweroff"
-      - destroy_result.results[1].status_after == "not_created"
-      # - '"==> srv002: Forcing shutdown of VM..." in destroy_result.results[1].stdout_lines'  Only if running before
-      - '"==> srv002: Destroying VM and associated drives..." in destroy_result.results[1].stdout_lines'
-      - destroy_result.results[1].stderr_lines == []
+        - destroy_result.results[1] is success
+        - destroy_result.results[1] is changed
+        - destroy_result.results[1].duration > 0
+        - destroy_result.results[1].status_before == "poweroff"
+        - destroy_result.results[1].status_after == "not_created"
+        # - '"==> srv002: Forcing shutdown of VM..." in destroy_result.results[1].stdout_lines'  Only if running before
+        - '"==> srv002: Destroying VM and associated drives..." in destroy_result.results[1].stdout_lines'
+        - destroy_result.results[1].stderr_lines == []
 
-# Case 3: idempotence
-- name: re-destroy them
-  jclaveau.vagrant.destroy:
-  args:
-    name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.statuses }}"
-  async: "{{ 45 if async_enabled else 0 }}"
-  poll: 0
-  register: async_loop
+  # Case 3: idempotence
+  - name: re-destroy them
+    jclaveau.vagrant.destroy:
+    args:
+      name: "{{ item.name }}"
+    loop: "{{ vagrant_existing_machines.statuses }}"
+    async: "{{ 45 if async_enabled else 0 }}"
+    poll: 0
+    register: async_loop
 
-- name: dbg async_loop for re-destroy
-  ansible.builtin.debug:
-    var: async_loop
-  tags:
-   - never
-   - debug
+  - name: dbg async_loop for re-destroy
+    ansible.builtin.debug:
+      var: async_loop
+    tags:
+    - never
+    - debug
 
-- name: wait for re-destroy to finish
-  async_status:
-    jid: "{{ item.ansible_job_id }}"
-    mode: status
-  retries: 45
-  delay: 1
-  loop: "{{ async_loop.results }}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
-  when: async_enabled
+  - name: wait for re-destroy to finish
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+      mode: status
+    retries: 45
+    delay: 1
+    loop: "{{ async_loop.results }}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
+    when: async_enabled
 
-- set_fact:
-    destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+  - set_fact:
+      destroy_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
-- name: dbg destroy_result for re-destroy
-  ansible.builtin.debug:
-    var: destroy_result
-  tags:
-   - never
-   - debug
+  - name: dbg destroy_result for re-destroy
+    ansible.builtin.debug:
+      var: destroy_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant re-destroy should succeed
-  assert:
-    that:
-      - destroy_result is success
-      - destroy_result is not changed
+  - name: Vagrant re-destroy should succeed
+    assert:
+      that:
+        - destroy_result is success
+        - destroy_result is not changed
 
-      - destroy_result.results[0] is success
-      - destroy_result.results[0] is not changed
-      - destroy_result.results[0].duration > 0
-      - destroy_result.results[0].status_before == "not_created"
-      - destroy_result.results[0].status_after == "not_created"
-      - destroy_result.results[0].stderr_lines == []
-      - destroy_result.results[0].stdout_lines == []
+        - destroy_result.results[0] is success
+        - destroy_result.results[0] is not changed
+        - destroy_result.results[0].duration > 0
+        - destroy_result.results[0].status_before == "not_created"
+        - destroy_result.results[0].status_after == "not_created"
+        - destroy_result.results[0].stderr_lines == []
+        - destroy_result.results[0].stdout_lines == []
 
-      - destroy_result.results[1] is success
-      - destroy_result.results[1] is not changed
-      - destroy_result.results[1].duration > 0
-      - destroy_result.results[1].status_before == "not_created"
-      - destroy_result.results[1].status_after == "not_created"
-      - destroy_result.results[1].stderr_lines == []
-      - destroy_result.results[1].stdout_lines == []
+        - destroy_result.results[1] is success
+        - destroy_result.results[1] is not changed
+        - destroy_result.results[1].duration > 0
+        - destroy_result.results[1].status_before == "not_created"
+        - destroy_result.results[1].status_after == "not_created"
+        - destroy_result.results[1].stderr_lines == []
+        - destroy_result.results[1].stdout_lines == []
 

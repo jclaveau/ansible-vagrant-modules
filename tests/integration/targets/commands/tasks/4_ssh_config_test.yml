@@ -1,131 +1,134 @@
-# Case 0: without name
-- name: Retrieve the ssh_configs of no machine
-  jclaveau.vagrant.ssh_config:
-  register: ssh_config_result
-  ignore_errors: true
+- name: ssh_config tasks
+  tags: ssh_config
+  block:
+  # Case 0: without name
+  - name: Retrieve the ssh_configs of no machine
+    jclaveau.vagrant.ssh_config:
+    register: ssh_config_result
+    ignore_errors: true
 
-- name: dbg ssh_config_result
-  ansible.builtin.debug:
-    var: ssh_config_result
-  tags:
-   - never
-   - debug
+  - name: dbg ssh_config_result
+    ansible.builtin.debug:
+      var: ssh_config_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant ssh_config should succeed
-  assert:
-    that:
-      - ssh_config_result is success
-      - ssh_config_result is not changed
-      - ssh_config_result.stdout_lines == []
-      - ssh_config_result.stderr_lines == []
-      - ssh_config_result.duration > 0
-      - ssh_config_result.ssh_configs | count == 2
+  - name: Vagrant ssh_config should succeed
+    assert:
+      that:
+        - ssh_config_result is success
+        - ssh_config_result is not changed
+        - ssh_config_result.stdout_lines == []
+        - ssh_config_result.stderr_lines == []
+        - ssh_config_result.duration > 0
+        - ssh_config_result.ssh_configs | count == 2
 
-      - ssh_config_result.ssh_configs[0].Host == "srv001"
-      - ssh_config_result.ssh_configs[0].HostName == "127.0.0.1"
-      - ssh_config_result.ssh_configs[0].IdentitiesOnly == "yes"
-      # - ssh_config_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
-      - ssh_config_result.ssh_configs[0].LogLevel == "FATAL"
-      - ssh_config_result.ssh_configs[0].PasswordAuthentication == "no"
-      - ssh_config_result.ssh_configs[0].Port == "2290"
-      - ssh_config_result.ssh_configs[0].StrictHostKeyChecking == "no"
-      - ssh_config_result.ssh_configs[0].User == "vagrant"
-      - ssh_config_result.ssh_configs[0].UserKnownHostsFile == "/dev/null"
-      - ssh_config_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2290 -i {{ ssh_config_result.ssh_configs[0].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
+        - ssh_config_result.ssh_configs[0].Host == "srv001"
+        - ssh_config_result.ssh_configs[0].HostName == "127.0.0.1"
+        - ssh_config_result.ssh_configs[0].IdentitiesOnly == "yes"
+        # - ssh_config_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
+        - ssh_config_result.ssh_configs[0].LogLevel == "FATAL"
+        - ssh_config_result.ssh_configs[0].PasswordAuthentication == "no"
+        - ssh_config_result.ssh_configs[0].Port == "2290"
+        - ssh_config_result.ssh_configs[0].StrictHostKeyChecking == "no"
+        - ssh_config_result.ssh_configs[0].User == "vagrant"
+        - ssh_config_result.ssh_configs[0].UserKnownHostsFile == "/dev/null"
+        - ssh_config_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2290 -i {{ ssh_config_result.ssh_configs[0].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
 
-      - ssh_config_result.ssh_configs[1].Host == "srv002"
-      - ssh_config_result.ssh_configs[1].HostName == "127.0.0.1"
-      - ssh_config_result.ssh_configs[1].IdentitiesOnly == "yes"
-      # - ssh_config_result.ssh_configs[1].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
-      - ssh_config_result.ssh_configs[1].LogLevel == "FATAL"
-      - ssh_config_result.ssh_configs[1].PasswordAuthentication == "no"
-      - ssh_config_result.ssh_configs[1].Port == "2291"
-      - ssh_config_result.ssh_configs[1].StrictHostKeyChecking == "no"
-      - ssh_config_result.ssh_configs[1].User == "vagrant"
-      - ssh_config_result.ssh_configs[1].UserKnownHostsFile == "/dev/null"
-      - ssh_config_result.ssh_configs[1].command == "ssh vagrant@127.0.0.1 -p 2291 -i {{ ssh_config_result.ssh_configs[1].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
+        - ssh_config_result.ssh_configs[1].Host == "srv002"
+        - ssh_config_result.ssh_configs[1].HostName == "127.0.0.1"
+        - ssh_config_result.ssh_configs[1].IdentitiesOnly == "yes"
+        # - ssh_config_result.ssh_configs[1].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
+        - ssh_config_result.ssh_configs[1].LogLevel == "FATAL"
+        - ssh_config_result.ssh_configs[1].PasswordAuthentication == "no"
+        - ssh_config_result.ssh_configs[1].Port == "2291"
+        - ssh_config_result.ssh_configs[1].StrictHostKeyChecking == "no"
+        - ssh_config_result.ssh_configs[1].User == "vagrant"
+        - ssh_config_result.ssh_configs[1].UserKnownHostsFile == "/dev/null"
+        - ssh_config_result.ssh_configs[1].command == "ssh vagrant@127.0.0.1 -p 2291 -i {{ ssh_config_result.ssh_configs[1].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
 
-# Case 1: with a name
-- name: Retrieve the ssh_config of srv002
-  jclaveau.vagrant.ssh_config:
-  args:
-    name: srv002
-  register: ssh_config_srv002_result
+  # Case 1: with a name
+  - name: Retrieve the ssh_config of srv002
+    jclaveau.vagrant.ssh_config:
+    args:
+      name: srv002
+    register: ssh_config_srv002_result
 
-- name: dbg ssh_config_result
-  ansible.builtin.debug:
-    var: ssh_config_srv002_result
-  tags:
-   - never
-   - debug
+  - name: dbg ssh_config_result
+    ansible.builtin.debug:
+      var: ssh_config_srv002_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant ssh_config for srv002 only should succeed
-  assert:
-    that:
-      - ssh_config_srv002_result is success
-      - ssh_config_srv002_result is not changed
-      - ssh_config_srv002_result.stdout_lines == []
-      - ssh_config_srv002_result.stderr_lines == []
-      - ssh_config_srv002_result.duration > 0
-      - ssh_config_srv002_result.ssh_configs | count == 1
+  - name: Vagrant ssh_config for srv002 only should succeed
+    assert:
+      that:
+        - ssh_config_srv002_result is success
+        - ssh_config_srv002_result is not changed
+        - ssh_config_srv002_result.stdout_lines == []
+        - ssh_config_srv002_result.stderr_lines == []
+        - ssh_config_srv002_result.duration > 0
+        - ssh_config_srv002_result.ssh_configs | count == 1
 
-      - ssh_config_srv002_result.ssh_configs[0].Host == "srv002"
-      - ssh_config_srv002_result.ssh_configs[0].HostName == "127.0.0.1"
-      - ssh_config_srv002_result.ssh_configs[0].IdentitiesOnly == "yes"
-      # - ssh_config_srv002_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
-      - ssh_config_srv002_result.ssh_configs[0].LogLevel == "FATAL"
-      - ssh_config_srv002_result.ssh_configs[0].PasswordAuthentication == "no"
-      - ssh_config_srv002_result.ssh_configs[0].Port == "2291"
-      - ssh_config_srv002_result.ssh_configs[0].StrictHostKeyChecking == "no"
-      - ssh_config_srv002_result.ssh_configs[0].User == "vagrant"
-      - ssh_config_srv002_result.ssh_configs[0].UserKnownHostsFile == "/dev/null"
-      - ssh_config_srv002_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2291 -i {{ ssh_config_srv002_result.ssh_configs[0].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
+        - ssh_config_srv002_result.ssh_configs[0].Host == "srv002"
+        - ssh_config_srv002_result.ssh_configs[0].HostName == "127.0.0.1"
+        - ssh_config_srv002_result.ssh_configs[0].IdentitiesOnly == "yes"
+        # - ssh_config_srv002_result.ssh_configs[0].IdentityFile == "/home/jean/.vagrant.d/insecure_private_key"
+        - ssh_config_srv002_result.ssh_configs[0].LogLevel == "FATAL"
+        - ssh_config_srv002_result.ssh_configs[0].PasswordAuthentication == "no"
+        - ssh_config_srv002_result.ssh_configs[0].Port == "2291"
+        - ssh_config_srv002_result.ssh_configs[0].StrictHostKeyChecking == "no"
+        - ssh_config_srv002_result.ssh_configs[0].User == "vagrant"
+        - ssh_config_srv002_result.ssh_configs[0].UserKnownHostsFile == "/dev/null"
+        - ssh_config_srv002_result.ssh_configs[0].command == "ssh vagrant@127.0.0.1 -p 2291 -i {{ ssh_config_srv002_result.ssh_configs[0].IdentityFile }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o NoHostAuthenticationForLocalhost=yes"
 
-# Case 2: with a bad name
-- name: Retrieve the ssh_config of srv002
-  jclaveau.vagrant.ssh_config:
-  args:
-    name: not_a_vm
-  register: ssh_config_bad_result
-  ignore_errors: true
+  # Case 2: with a bad name
+  - name: Retrieve the ssh_config of srv002
+    jclaveau.vagrant.ssh_config:
+    args:
+      name: not_a_vm
+    register: ssh_config_bad_result
+    ignore_errors: true
 
-- name: dbg ssh_config_bad_result
-  ansible.builtin.debug:
-    var: ssh_config_bad_result
-  tags:
-   - never
-   - debug
+  - name: dbg ssh_config_bad_result
+    ansible.builtin.debug:
+      var: ssh_config_bad_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant ssh_config for non existing vm should fail
-  assert:
-    that:
-      - ssh_config_bad_result is failed
-      - ssh_config_bad_result is not changed
-      - ssh_config_bad_result.stdout_lines == []
-      - ssh_config_bad_result.stderr_lines == ["The machine with the name 'not_a_vm' was not found configured for", "this Vagrant environment."]
+  - name: Vagrant ssh_config for non existing vm should fail
+    assert:
+      that:
+        - ssh_config_bad_result is failed
+        - ssh_config_bad_result is not changed
+        - ssh_config_bad_result.stdout_lines == []
+        - ssh_config_bad_result.stderr_lines == ["The machine with the name 'not_a_vm' was not found configured for", "this Vagrant environment."]
 
-# Case 2: Test SSH connection
-- name: SSH connection to them
-  shell: >
-    {{ item.command }}
-    -o ConnectTimeout=5
-    hostname
-  loop: '{{ ssh_config_result.ssh_configs }}'
-  register: ssh_results
+  # Case 2: Test SSH connection
+  - name: SSH connection to them
+    shell: >
+      {{ item.command }}
+      -o ConnectTimeout=5
+      hostname
+    loop: '{{ ssh_config_result.ssh_configs }}'
+    register: ssh_results
 
-- name: dbg ssh results
-  ansible.builtin.debug:
-    var: ssh_results
-  tags:
-   - never
-   - debug
+  - name: dbg ssh results
+    ansible.builtin.debug:
+      var: ssh_results
+    tags:
+    - never
+    - debug
 
-- name: SSH connection should succeed
-  assert:
-    that:
-      - ssh_results is success
-      - ssh_results is changed
-      - ssh_results.results | count == 2
-      - ssh_results.results[0].stdout == ssh_results.results[0].item.Host
-      - ssh_results.results[1].stdout == ssh_results.results[1].item.Host
+  - name: SSH connection should succeed
+    assert:
+      that:
+        - ssh_results is success
+        - ssh_results is changed
+        - ssh_results.results | count == 2
+        - ssh_results.results[0].stdout == ssh_results.results[0].item.Host
+        - ssh_results.results[1].stdout == ssh_results.results[1].item.Host
 

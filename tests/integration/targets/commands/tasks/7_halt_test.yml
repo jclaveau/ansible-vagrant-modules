@@ -1,204 +1,207 @@
-- name: the two machines must be running
-  jclaveau.vagrant.up:
-  args:
-    name: "{{ item }}"
-  loop:
-    - "srv001"
-    - "srv002"
-  async: "{{ 90 if async_enabled else 0 }}"
-  poll: 0
-  register: async_loop
+- name: halt tasks
+  tags: halt
+  block:
+  - name: the two machines must be running
+    jclaveau.vagrant.up:
+    args:
+      name: "{{ item }}"
+    loop:
+      - "srv001"
+      - "srv002"
+    async: "{{ 90 if async_enabled else 0 }}"
+    poll: 0
+    register: async_loop
 
-- name: wait for up to finish
-  async_status:
-    jid: "{{ item.ansible_job_id }}"
-    mode: status
-  retries: 90
-  delay: 1
-  loop: "{{ async_loop.results }}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
-  when: async_enabled
+  - name: wait for up to finish
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+      mode: status
+    retries: 90
+    delay: 1
+    loop: "{{ async_loop.results }}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
+    when: async_enabled
 
-- set_fact:
-    up_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+  - set_fact:
+      up_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
-- name: dbg up_result before status tests
-  ansible.builtin.debug:
-    var: up_result
-  tags:
-   - never
-   - debug
+  - name: dbg up_result before status tests
+    ansible.builtin.debug:
+      var: up_result
+    tags:
+    - never
+    - debug
 
-# Case 0: missing name parameter
-- name: halt them
-  jclaveau.vagrant.halt:
-  register: halt_result
-  ignore_errors: true
+  # Case 0: missing name parameter
+  - name: halt them
+    jclaveau.vagrant.halt:
+    register: halt_result
+    ignore_errors: true
 
-- name: dbg halt_result
-  ansible.builtin.debug:
-    var: halt_result
-  tags:
-   - never
-   - debug
+  - name: dbg halt_result
+    ansible.builtin.debug:
+      var: halt_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant halt should fail
-  assert:
-    that:
-      - halt_result is failed
-      - halt_result is not changed
-      - "halt_result.msg == 'missing required arguments: name'"
+  - name: Vagrant halt should fail
+    assert:
+      that:
+        - halt_result is failed
+        - halt_result is not changed
+        - "halt_result.msg == 'missing required arguments: name'"
 
-# Case 1: halting a non existing vm
-- name: halt them
-  jclaveau.vagrant.halt:
-  args:
-    name: "i_do_not_exist"
-  register: halt_result
-  ignore_errors: true
+  # Case 1: halting a non existing vm
+  - name: halt them
+    jclaveau.vagrant.halt:
+    args:
+      name: "i_do_not_exist"
+    register: halt_result
+    ignore_errors: true
 
-- name: dbg halt_result
-  ansible.builtin.debug:
-    var: halt_result
-  tags:
-   - never
-   - debug
+  - name: dbg halt_result
+    ansible.builtin.debug:
+      var: halt_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant halt should fail
-  assert:
-    that:
-      - halt_result is failed
-      - halt_result is not changed
-      - >
-        "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in halt_result.stderr_lines
+  - name: Vagrant halt should fail
+    assert:
+      that:
+        - halt_result is failed
+        - halt_result is not changed
+        - >
+          "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in halt_result.stderr_lines
 
-# Case 2: halting the two vms
-- name: List existing vms
-  jclaveau.vagrant.status:
-  register: vagrant_existing_machines
+  # Case 2: halting the two vms
+  - name: List existing vms
+    jclaveau.vagrant.status:
+    register: vagrant_existing_machines
 
-- name: dbg vagrant_existing_machines
-  ansible.builtin.debug:
-    var: vagrant_existing_machines.statuses
-  tags:
-   - never
-   - debug
+  - name: dbg vagrant_existing_machines
+    ansible.builtin.debug:
+      var: vagrant_existing_machines.statuses
+    tags:
+    - never
+    - debug
 
-- name: halt them
-  jclaveau.vagrant.halt:
-  args:
-    name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.statuses }}"
-  async: "{{ 45 if async_enabled else 0 }}"
-  poll: 0
-  register: async_loop
+  - name: halt them
+    jclaveau.vagrant.halt:
+    args:
+      name: "{{ item.name }}"
+    loop: "{{ vagrant_existing_machines.statuses }}"
+    async: "{{ 45 if async_enabled else 0 }}"
+    poll: 0
+    register: async_loop
 
-- name: dbg async_loop results
-  ansible.builtin.debug:
-    var: async_loop
-  tags:
-   - never
-   - debug
+  - name: dbg async_loop results
+    ansible.builtin.debug:
+      var: async_loop
+    tags:
+    - never
+    - debug
 
-- name: wait for halt to finish
-  async_status:
-    jid: "{{ item.ansible_job_id }}"
-    mode: status
-  retries: 45
-  delay: 1
-  loop: "{{ async_loop.results }}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
-  when: async_enabled
+  - name: wait for halt to finish
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+      mode: status
+    retries: 45
+    delay: 1
+    loop: "{{ async_loop.results }}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
+    when: async_enabled
 
-- set_fact:
-    halt_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+  - set_fact:
+      halt_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
-- name: dbg halt_result for re-halt
-  ansible.builtin.debug:
-    var: halt_result
-  tags:
-   - never
-   - debug
+  - name: dbg halt_result for re-halt
+    ansible.builtin.debug:
+      var: halt_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant halt should succeed
-  assert:
-    that:
-      - halt_result is success
-      - halt_result is changed
-      - halt_result.results[0] is success
-      - halt_result.results[0] is changed
-      - halt_result.results[0].duration > 0
-      - halt_result.results[0].status_before == "running"
-      - halt_result.results[0].status_after == "poweroff"
-      - '"==> srv001: Attempting graceful shutdown of VM..." in halt_result.results[0].stdout_lines'
-      - halt_result.results[0].stderr_lines == []
+  - name: Vagrant halt should succeed
+    assert:
+      that:
+        - halt_result is success
+        - halt_result is changed
+        - halt_result.results[0] is success
+        - halt_result.results[0] is changed
+        - halt_result.results[0].duration > 0
+        - halt_result.results[0].status_before == "running"
+        - halt_result.results[0].status_after == "poweroff"
+        - '"==> srv001: Attempting graceful shutdown of VM..." in halt_result.results[0].stdout_lines'
+        - halt_result.results[0].stderr_lines == []
 
-      - halt_result.results[1] is success
-      - halt_result.results[1] is changed
-      - halt_result.results[1].duration > 0
-      - halt_result.results[1].status_before == "running"
-      - halt_result.results[1].status_after == "poweroff"
-      - '"==> srv002: Attempting graceful shutdown of VM..." in halt_result.results[1].stdout_lines'
-      - halt_result.results[1].stderr_lines == []
+        - halt_result.results[1] is success
+        - halt_result.results[1] is changed
+        - halt_result.results[1].duration > 0
+        - halt_result.results[1].status_before == "running"
+        - halt_result.results[1].status_after == "poweroff"
+        - '"==> srv002: Attempting graceful shutdown of VM..." in halt_result.results[1].stdout_lines'
+        - halt_result.results[1].stderr_lines == []
 
-# Case 3: idempotence
-- name: re-halt them
-  jclaveau.vagrant.halt:
-  args:
-    name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.statuses }}"
-  async: "{{ 45 if async_enabled else 0 }}"
-  poll: 0
-  register: async_loop
+  # Case 3: idempotence
+  - name: re-halt them
+    jclaveau.vagrant.halt:
+    args:
+      name: "{{ item.name }}"
+    loop: "{{ vagrant_existing_machines.statuses }}"
+    async: "{{ 45 if async_enabled else 0 }}"
+    poll: 0
+    register: async_loop
 
-- name: dbg async_loop for re-halt
-  ansible.builtin.debug:
-    var: async_loop
-  tags:
-   - never
-   - debug
+  - name: dbg async_loop for re-halt
+    ansible.builtin.debug:
+      var: async_loop
+    tags:
+    - never
+    - debug
 
-- name: wait for re-halt to finish
-  async_status:
-    jid: "{{ item.ansible_job_id }}"
-    mode: status
-  retries: 45
-  delay: 1
-  loop: "{{ async_loop.results }}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
-  when: async_enabled
+  - name: wait for re-halt to finish
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+      mode: status
+    retries: 45
+    delay: 1
+    loop: "{{ async_loop.results }}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
+    when: async_enabled
 
-- set_fact:
-    halt_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+  - set_fact:
+      halt_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
-- name: dbg halt_result for re-halt
-  ansible.builtin.debug:
-    var: halt_result
-  tags:
-   - never
-   - debug
+  - name: dbg halt_result for re-halt
+    ansible.builtin.debug:
+      var: halt_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant re-halt should succeed
-  assert:
-    that:
-      - halt_result is success
-      - halt_result is not changed
-      - halt_result.results[0] is success
-      - halt_result.results[0] is not changed
-      - halt_result.results[0].duration > 0
-      - halt_result.results[0].status_before == "poweroff"
-      - halt_result.results[0].status_after == "poweroff"
-      - halt_result.results[0].stderr_lines == []
-      - halt_result.results[0].stdout_lines == []
+  - name: Vagrant re-halt should succeed
+    assert:
+      that:
+        - halt_result is success
+        - halt_result is not changed
+        - halt_result.results[0] is success
+        - halt_result.results[0] is not changed
+        - halt_result.results[0].duration > 0
+        - halt_result.results[0].status_before == "poweroff"
+        - halt_result.results[0].status_after == "poweroff"
+        - halt_result.results[0].stderr_lines == []
+        - halt_result.results[0].stdout_lines == []
 
-      - halt_result.results[1] is success
-      - halt_result.results[1] is not changed
-      - halt_result.results[1].duration > 0
-      - halt_result.results[1].status_before == "poweroff"
-      - halt_result.results[1].status_after == "poweroff"
-      - halt_result.results[1].stderr_lines == []
-      - halt_result.results[1].stdout_lines == []
+        - halt_result.results[1] is success
+        - halt_result.results[1] is not changed
+        - halt_result.results[1].duration > 0
+        - halt_result.results[1].status_before == "poweroff"
+        - halt_result.results[1].status_after == "poweroff"
+        - halt_result.results[1].stderr_lines == []
+        - halt_result.results[1].stdout_lines == []
 

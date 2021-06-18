@@ -1,114 +1,117 @@
-# Case 0: missing name parameter
-- name: suspend them
-  jclaveau.vagrant.suspend:
-  register: suspend_result
-  ignore_errors: true
+- name: suspend tasks
+  tags: suspend
+  block:
+  # Case 0: missing name parameter
+  - name: suspend them
+    jclaveau.vagrant.suspend:
+    register: suspend_result
+    ignore_errors: true
 
-- name: dbg suspend_result
-  ansible.builtin.debug:
-    var: suspend_result
-  tags:
-   - never
-   - debug
+  - name: dbg suspend_result
+    ansible.builtin.debug:
+      var: suspend_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant suspend should fail
-  assert:
-    that:
-      - suspend_result is failed
-      - suspend_result is not changed
-      - "suspend_result.msg == 'missing required arguments: name'"
+  - name: Vagrant suspend should fail
+    assert:
+      that:
+        - suspend_result is failed
+        - suspend_result is not changed
+        - "suspend_result.msg == 'missing required arguments: name'"
 
-# Case 1: Suspending a non existing vm
-- name: suspend them
-  jclaveau.vagrant.suspend:
-  args:
-    name: "i_do_not_exist"
-  register: suspend_result
-  ignore_errors: true
+  # Case 1: Suspending a non existing vm
+  - name: suspend them
+    jclaveau.vagrant.suspend:
+    args:
+      name: "i_do_not_exist"
+    register: suspend_result
+    ignore_errors: true
 
-- name: dbg suspend_result
-  ansible.builtin.debug:
-    var: suspend_result
-  tags:
-   - never
-   - debug
+  - name: dbg suspend_result
+    ansible.builtin.debug:
+      var: suspend_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant suspend should fail
-  assert:
-    that:
-      - suspend_result is failed
-      - suspend_result is not changed
-      - >
-        "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in suspend_result.stderr_lines
+  - name: Vagrant suspend should fail
+    assert:
+      that:
+        - suspend_result is failed
+        - suspend_result is not changed
+        - >
+          "Vagrant::Errors::MachineNotFound: The machine with the name 'i_do_not_exist' was not found configured for this Vagrant environment." in suspend_result.stderr_lines
 
-# Case 2: Suspending the two vms
-- name: List existing vms
-  jclaveau.vagrant.status:
-  register: vagrant_existing_machines
+  # Case 2: Suspending the two vms
+  - name: List existing vms
+    jclaveau.vagrant.status:
+    register: vagrant_existing_machines
 
-- name: dbg vagrant_existing_machines
-  ansible.builtin.debug:
-    var: vagrant_existing_machines.statuses
-  tags:
-   - never
-   - debug
+  - name: dbg vagrant_existing_machines
+    ansible.builtin.debug:
+      var: vagrant_existing_machines.statuses
+    tags:
+    - never
+    - debug
 
-- name: suspend them
-  jclaveau.vagrant.suspend:
-  args:
-    name: "{{ item.name }}"
-  loop: "{{ vagrant_existing_machines.statuses }}"
-  async: "{{ 45 if async_enabled else 0 }}"
-  poll: 0
-  register: async_loop
+  - name: suspend them
+    jclaveau.vagrant.suspend:
+    args:
+      name: "{{ item.name }}"
+    loop: "{{ vagrant_existing_machines.statuses }}"
+    async: "{{ 45 if async_enabled else 0 }}"
+    poll: 0
+    register: async_loop
 
-- name: dbg async_loop results
-  ansible.builtin.debug:
-    var: async_loop
-  tags:
-   - never
-   - debug
+  - name: dbg async_loop results
+    ansible.builtin.debug:
+      var: async_loop
+    tags:
+    - never
+    - debug
 
-- name: wait for suspend to finish
-  async_status:
-    jid: "{{ item.ansible_job_id }}"
-    mode: status
-  retries: 45
-  delay: 1
-  loop: "{{ async_loop.results }}"
-  register: async_loop_jobs
-  until: async_loop_jobs.finished
-  when: async_enabled
+  - name: wait for suspend to finish
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+      mode: status
+    retries: 45
+    delay: 1
+    loop: "{{ async_loop.results }}"
+    register: async_loop_jobs
+    until: async_loop_jobs.finished
+    when: async_enabled
 
-- set_fact:
-    suspend_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
+  - set_fact:
+      suspend_result: "{{ async_loop_jobs if async_enabled else async_loop }}"
 
-- name: dbg suspend_result
-  ansible.builtin.debug:
-    var: suspend_result
-  tags:
-   - never
-   - debug
+  - name: dbg suspend_result
+    ansible.builtin.debug:
+      var: suspend_result
+    tags:
+    - never
+    - debug
 
-- name: Vagrant suspend should succeed
-  assert:
-    that:
-      - suspend_result is success
-      - suspend_result is changed
+  - name: Vagrant suspend should succeed
+    assert:
+      that:
+        - suspend_result is success
+        - suspend_result is changed
 
-      - suspend_result.results[0] is success
-      - suspend_result.results[0] is changed
-      - suspend_result.results[0].duration > 0
-      - suspend_result.results[0].status_before == "running"
-      - suspend_result.results[0].status_after == "saved"
-      - 'suspend_result.results[0].stdout_lines == ["==> srv001: Saving VM state and suspending execution..."]'
-      - suspend_result.results[0].stderr_lines == []
+        - suspend_result.results[0] is success
+        - suspend_result.results[0] is changed
+        - suspend_result.results[0].duration > 0
+        - suspend_result.results[0].status_before == "running"
+        - suspend_result.results[0].status_after == "saved"
+        - 'suspend_result.results[0].stdout_lines == ["==> srv001: Saving VM state and suspending execution..."]'
+        - suspend_result.results[0].stderr_lines == []
 
-      - suspend_result.results[1] is success
-      - suspend_result.results[1] is changed
-      - suspend_result.results[1].duration > 0
-      - suspend_result.results[1].status_before == "running"
-      - suspend_result.results[1].status_after == "saved"
-      - 'suspend_result.results[1].stdout_lines == ["==> srv002: Saving VM state and suspending execution..."]'
-      - suspend_result.results[1].stderr_lines == []
+        - suspend_result.results[1] is success
+        - suspend_result.results[1] is changed
+        - suspend_result.results[1].duration > 0
+        - suspend_result.results[1].status_before == "running"
+        - suspend_result.results[1].status_after == "saved"
+        - 'suspend_result.results[1].stdout_lines == ["==> srv002: Saving VM state and suspending execution..."]'
+        - suspend_result.results[1].stderr_lines == []
 
