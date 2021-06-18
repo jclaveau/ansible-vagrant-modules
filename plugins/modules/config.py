@@ -134,7 +134,5 @@ def main():
         results = config.dump(name=name, config_filter=config_param)
         module.exit_json(changed=False, vms=results)
 
-    module.exit_json(status="success")
-
 
 main()

@@ -48,6 +48,9 @@ jobs:
       - name: Run the integration tests
         run: ansible-test integration --python 3.8 --coverage --no-temp-workdir --color
 
+      - name: Clean buggy coverage files
+        run: scripts/clean_buggy_coverage_files.py
+
       - name: Prepare coverage for Codecov.io
         run: ansible-test coverage xml --color
 
