@@ -50,7 +50,7 @@ options:
     type: bool
   provision_with:
     description:
-      - Enable only certain provisioners, by type or by name.
+      - Enable only certain provisioners, by type or by name (shell and Ansible are supported; feel free to PR new ones).
     type: bool
   provider:
     type: str
@@ -61,7 +61,7 @@ options:
       - the folder where vagrant files will be stored
     type: str
     default: .
-requirements: ["vagrant, lockfile"]
+requirements: ["vagrant"]
 '''
 
 
@@ -70,32 +70,29 @@ EXAMPLES = '''
   jclaveau.vagrant.up:
     names:
       - vm_name
+- name: up with a specific provider
+  jclaveau.vagrant.up:
+  args:
+    name: vm_name
+    provider: docker
+- name: up with forced provisioning
+  jclaveau.vagrant.up:
+  args:
+    name: vm_name
+    provision: true
+- name: up with provisionning for shell only
+  jclaveau.vagrant.up:
+  args:
+    name: vm_name
+    provision_with: shell
 '''
 
-import sys
-import subprocess
-import os.path
-# import json
-# import ast
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
-import traceback
-# import fcntl
-# from io import StringIO
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
+from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import DEFAULT_ROOT
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.VagrantWrapper import VagrantWrapper
 
-try:
-    import vagrant
-except ImportError:
-    HAS_VAGRANT_LIBRARY = False
-    VAGRANT_LIBRARY_IMPORT_ERROR = traceback.format_exc()
-else:
-    HAS_VAGRANT_LIBRARY = True
 
-# --------
-# MAIN
-# --------
 def main():
 
     module = AnsibleModule(
