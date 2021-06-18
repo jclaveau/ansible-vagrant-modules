@@ -4,9 +4,19 @@
 #   register: playbook_path_output
 # - debug: var=playbook_path_output.stdout
 
-- name: Start with no Vagrantfile / vagrant-hosts.yml
+- name: Start with no vagrant-hosts.yml
   ansible.builtin.file:
     path: ./vagrant-hosts.yml
+    state: absent
+
+- name: Start with no Vagrantfile
+  ansible.builtin.file:
+    path: ./Vagrantfile
+    state: absent
+
+- name: Start with no vagrant-groups.yml
+  ansible.builtin.file:
+    path: ./vagrant-groups.yml
     state: absent
 
 - name: Create synced folders
@@ -494,4 +504,3 @@
       - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
   with_file:
     - ./vagrant-hosts.yml
-

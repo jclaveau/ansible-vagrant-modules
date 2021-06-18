@@ -2,16 +2,28 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.exceptions import MachineNotFound
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.exceptions import NotImplementedInPythonVagrantError
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.Vagrantfile import VAGRANTFILE_CONTENT
 
-import yaml
 import copy
+import traceback
 import os.path
-from deepdiff import DeepDiff
-# from pprint import pprint
+
+try:
+    import yaml
+except ImportError as e:
+    HAS_YAML_LIBRARY = False
+    YAML_LIBRARY_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_YAML_LIBRARY = True
+
+try:
+    from deepdiff import DeepDiff
+except ImportError as e:
+    HAS_DEEPDIFF_LIBRARY = False
+    DEEPDIFF_LIBRARY_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_DEEPDIFF_LIBRARY = True
 
 
 class VagrantConfig(object):
@@ -29,7 +41,7 @@ class VagrantConfig(object):
         if not os.path.exists(root_path):
             os.makedirs(root_path)
 
-    def turn_present_in_config(self, name, new_config, new_groups):
+    def turn_present_in_config(self, name, new_config):
         found = False
         needs = []
 
@@ -39,10 +51,20 @@ class VagrantConfig(object):
         # load the yaml file or create it
         with open(self.root + "/vagrant-hosts.yml", 'a+') as stream:
             stream.seek(0)
+            if not HAS_YAML_LIBRARY:
+                self.module.fail_json(
+                    msg=missing_required_lib('yaml'),
+                    exception=YAML_LIBRARY_IMPORT_ERROR)
+
             try:
                 existing_config = yaml.safe_load(stream)
             except yaml.YAMLError as e:
                 self.module.fail_json(msg=e)
+
+            if not HAS_DEEPDIFF_LIBRARY:
+                self.module.fail_json(
+                    msg=missing_required_lib('deepdiff'),
+                    exception=DEEPDIFF_LIBRARY_IMPORT_ERROR)
 
             if existing_config is not None:
                 for existing_host in existing_config:
@@ -68,10 +90,10 @@ class VagrantConfig(object):
                         # TODO handle parameters which are not at root
                         for parameter in self.parameters_requiring_recreate:
                             parameter_path = "root['" + parameter + "']"
-                            if (('values_changed' in diff and parameter_path in diff['values_changed'].keys())
-                                    or ('dictionary_item_added' in diff and parameter_path in diff['dictionary_item_added'])
-                                    or ('dictionary_item_removed' in diff and parameter_path in diff['dictionary_item_removed'])
-                                    ):
+
+                            if (('values_changed' in diff and parameter_path in diff['values_changed'].keys()) or
+                                    ('dictionary_item_added' in diff and parameter_path in diff['dictionary_item_added']) or
+                                    ('dictionary_item_removed' in diff and parameter_path in diff['dictionary_item_removed'])):
                                 needs.append('destroy')
                                 needs.append('up')
 
@@ -90,27 +112,13 @@ class VagrantConfig(object):
             yaml.dump(updated_config, stream, allow_unicode=True, default_flow_style=False)
             self.ensure_vagrantfile_present(updated_config)
 
-        with open(self.root + "/vagrant-groups.yml", 'a+') as stream:
-            stream.seek(0)
-            existing_groups = yaml.safe_load(stream)
-            if existing_groups is None:
-                existing_groups = []
-            for group in new_groups:
-                if group not in existing_groups:
-                    existing_groups[group] = []
-                if name not in existing_groups[group]:
-                    existing_groups[group].append(name)
-            stream.truncate(0)
-            if len(existing_groups):
-                yaml.dump(existing_groups, stream, allow_unicode=True, default_flow_style=False)
-
         out = {
             'needs': needs
         }
         # print(out)
         return out
 
-    def turn_absent_from_config(self, name, config_filter, groups_filter):
+    def turn_absent_from_config(self, name, config_filter):
         found = False
         needs = []
 
@@ -120,10 +128,21 @@ class VagrantConfig(object):
         # load the yaml file or create it
         with open(self.root + "/vagrant-hosts.yml", 'a+') as stream:
             stream.seek(0)
+
+            if not HAS_YAML_LIBRARY:
+                self.module.fail_json(
+                    msg=missing_required_lib('yaml'),
+                    exception=YAML_LIBRARY_IMPORT_ERROR)
+
             try:
                 existing_config = yaml.safe_load(stream)
             except yaml.YAMLError as e:
                 self.module.fail_json(msg=e)
+
+            if not HAS_DEEPDIFF_LIBRARY:
+                self.module.fail_json(
+                    msg=missing_required_lib('deepdiff'),
+                    exception=DEEPDIFF_LIBRARY_IMPORT_ERROR)
 
             if existing_config is not None:
                 for existing_host in existing_config:
@@ -156,10 +175,21 @@ class VagrantConfig(object):
     def dump(self, name=None, config_filter=None):
         out = []
         with open(self.root + "/vagrant-hosts.yml", 'r') as stream:
+
+            if not HAS_YAML_LIBRARY:
+                self.module.fail_json(
+                    msg=missing_required_lib('yaml'),
+                    exception=YAML_LIBRARY_IMPORT_ERROR)
+
             try:
                 existing_config = yaml.safe_load(stream)
             except yaml.YAMLError as e:
                 self.module.fail_json(msg=e)
+
+            if not HAS_DEEPDIFF_LIBRARY:
+                self.module.fail_json(
+                    msg=missing_required_lib('deepdiff'),
+                    exception=DEEPDIFF_LIBRARY_IMPORT_ERROR)
 
             if existing_config is not None:
                 for existing_host in existing_config:
@@ -172,4 +202,3 @@ class VagrantConfig(object):
                     out.append(existing_host)
 
         return out
-

@@ -176,4 +176,3 @@
         - destroy_result.results[1].status_after == "not_created"
         - destroy_result.results[1].stderr_lines == []
         - destroy_result.results[1].stdout_lines == []
-

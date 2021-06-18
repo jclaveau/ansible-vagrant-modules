@@ -51,9 +51,6 @@ jobs:
       - name: Prepare coverage for Codecov.io
         run: ansible-test coverage xml --color
 
-      - name: Check coverage.xml
-        run: ls tests/output/reports/
-
       - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos

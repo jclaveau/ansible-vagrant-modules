@@ -3,5 +3,4 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 DEFAULT_ROOT = '.'
-DEFAULT_PROVIDER = 'virtualbox'
-DEFAULT_LOG_FILE = 'vagrant.log'
+# DEFAULT_PROVIDER = 'virtualbox'

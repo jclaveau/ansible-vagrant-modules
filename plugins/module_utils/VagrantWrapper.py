@@ -2,10 +2,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
-# from ansible_collections.jclaveau.vagrant.plugins.module_utils.Helpers import print_err
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.exceptions import MachineNotFound
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.exceptions import NotImplementedInPythonVagrantError
+from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import DEFAULT_ROOT
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
 import os.path
@@ -19,8 +16,7 @@ try:
     import vagrant
 except ImportError as e:
     HAS_VAGRANT_LIBRARY = False
-    VAGRANT_LIBRARY_IMPORT_ERROR = e
-    # VAGRANT_LIBRARY_IMPORT_ERROR = traceback.format_exc()
+    VAGRANT_LIBRARY_IMPORT_ERROR = traceback.format_exc()
 else:
     HAS_VAGRANT_LIBRARY = True
 
@@ -36,9 +32,9 @@ class VagrantWrapper(object):
         self.module = kwargs.setdefault('module', None)
         self.root_path = os.path.abspath(kwargs.setdefault('root_path', DEFAULT_ROOT))
 
-        self.stdout_file = tempfile.NamedTemporaryFile()
+        self.stdout_file = tempfile.NamedTemporaryFile()  # pylint: disable=consider-using-with
         self.stdout_filename = self.stdout_file.name
-        self.stderr_file = tempfile.NamedTemporaryFile()
+        self.stderr_file = tempfile.NamedTemporaryFile()  # pylint: disable=consider-using-with
         self.stderr_filename = self.stderr_file.name
 
         if not os.path.exists(self.root_path):
@@ -67,7 +63,8 @@ class VagrantWrapper(object):
                 yield re.sub('\n$', '', line)
 
     def fail_module(self, msg):
-        self.module.fail_json(msg=" %s\n\nCMD STDOUT\n%s\n\nCMD STDERR\n%s" % (
+        self.module.fail_json(
+            msg=" %s\n\nCMD STDOUT\n%s\n\nCMD STDERR\n%s" % (
                 msg,
                 "\n".join(list(self.stdout())),
                 "\n".join(list(self.stderr())),
@@ -104,7 +101,6 @@ class VagrantWrapper(object):
 
             if must_be_present:
                 self.fail_module(stderr.decode('utf-8'))
-                # raise MachineNotFound(stderr.decode('utf-8'))
         return out
 
     def status(self, name=None):
@@ -112,7 +108,7 @@ class VagrantWrapper(object):
         changed = False
         statuses = self.raw_statuses(name, must_be_present=True)
         end = round(time.time(), 2)
-        return (changed,  end - start, list(statuses.values()))
+        return (changed, end - start, list(statuses.values()))
 
     def port(self, name=None, guest=None):
         start = time.time()
@@ -142,7 +138,7 @@ class VagrantWrapper(object):
             self.fail_module(e)
 
         end = round(time.time(), 2)
-        return (changed,  end - start, ports)
+        return (changed, end - start, ports)
 
     def ssh_config(self, name):
         start = time.time()
@@ -178,7 +174,7 @@ class VagrantWrapper(object):
             self.fail_module(e)
 
         end = round(time.time(), 2)
-        return (changed,  end - start, ssh_configs)
+        return (changed, end - start, ssh_configs)
 
     def ssh(self, name, command):
         start = time.time()
@@ -196,7 +192,7 @@ class VagrantWrapper(object):
             self.fail_module(e)
 
         end = round(time.time(), 2)
-        return (changed,  end - start)
+        return (changed, end - start)
 
     def up(self, name=None, provider=None, provision=None, provision_with=None):
         """

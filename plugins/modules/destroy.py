@@ -21,7 +21,7 @@ Options:
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.destroy
+module: destroy
 short_description: vagrant destroy of only one vm
 description:
      - vagrant destroy of only one vm
@@ -33,6 +33,7 @@ options:
     description:
       - name of the VM to start
     type: str
+    required: true
   vagrant_root:
     description:
       - the folder where vagrant files will be stored
@@ -50,7 +51,7 @@ EXAMPLES = '''
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
+from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import DEFAULT_ROOT
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.VagrantWrapper import VagrantWrapper
 
 
@@ -81,12 +82,12 @@ def main():
     )
 
     module.exit_json(
-      changed=changed,
-      duration=duration,
-      status_before=status_before,
-      status_after=status_after,
-      stdout_lines=list(vgw.stdout()),
-      stderr_lines=list(vgw.stderr())
+        changed=changed,
+        duration=duration,
+        status_before=status_before,
+        status_after=status_after,
+        stdout_lines=list(vgw.stdout()),
+        stderr_lines=list(vgw.stderr())
     )
 
 

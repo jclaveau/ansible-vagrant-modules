@@ -77,4 +77,3 @@
         - port_result.ports | count == 1
         - port_result.ports[0].guest == 443
         - port_result.ports[0].host == 8143
-

@@ -204,4 +204,3 @@
         - halt_result.results[1].status_after == "poweroff"
         - halt_result.results[1].stderr_lines == []
         - halt_result.results[1].stdout_lines == []
-

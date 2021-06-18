@@ -176,4 +176,3 @@
         - resume_result.results[1].status_after == "running"
         - resume_result.results[1].stdout_lines == []
         - resume_result.results[1].stderr_lines == []
-

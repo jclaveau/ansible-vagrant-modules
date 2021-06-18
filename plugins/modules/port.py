@@ -21,7 +21,7 @@ Options:
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.port
+module: port
 short_description: vagrant port for only one vm
 description:
      - vagrant port for only one vm
@@ -60,7 +60,7 @@ EXAMPLES = '''
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
+from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import DEFAULT_ROOT
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.VagrantWrapper import VagrantWrapper
 
 
@@ -92,11 +92,11 @@ def main():
     )
 
     module.exit_json(
-      changed=changed,
-      duration=duration,
-      ports=ports,
-      stdout_lines=list(vgw.stdout()),
-      stderr_lines=list(vgw.stderr())
+        changed=changed,
+        duration=duration,
+        ports=ports,
+        stdout_lines=list(vgw.stdout()),
+        stderr_lines=list(vgw.stderr())
     )
 
 

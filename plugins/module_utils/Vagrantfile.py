@@ -60,7 +60,11 @@ vagrant_hosts = ENV['VAGRANT_HOSTS'] ? ENV['VAGRANT_HOSTS'] : 'vagrant-hosts.yml
 hosts = YAML.load_file(File.join(Dir.pwd, vagrant_hosts))
 
 vagrant_groups = ENV['VAGRANT_GROUPS'] ? ENV['VAGRANT_GROUPS'] : 'vagrant-groups.yml'
-groups = YAML.load_file(File.join(Dir.pwd, vagrant_groups))
+if File.file?(vagrant_groups)
+  groups = YAML.load_file(File.join(Dir.pwd, vagrant_groups))
+else
+  groups = []
+end
 
 # {{{ Helper functions
 
@@ -117,6 +121,8 @@ end
 #  forwarded_ports:
 #    - guest: 88
 #      host: 8080
+#    - guest: 22
+#      host: 2270
 #      id: ssh
 def forwarded_ports(vm, host)
   if host.has_key?('forwarded_ports')

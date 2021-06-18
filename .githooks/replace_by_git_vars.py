@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2016, [Daniel Dye (https://gist.github.com/dandye/dfe0870a6a1151c89ed9)]
 # Copyright: (c) 2021, [Jean Claveau (https://gist.github.com/jclaveau/af2271b9fdf05f7f1983f492af5592f8)]
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 import sys
 import os
 import json
@@ -23,7 +25,7 @@ import subprocess
 argv = sys.argv
 if len(argv) < 3:
     print(os.path.basename(__file__) + " [input_file] [ouput_file] [-v]")
-    quit()
+    sys.exit()
 
 input_file = argv[1]
 output_file = argv[2]
@@ -46,7 +48,7 @@ for config_rule in config:
     git_vars[parts[0]] = parts[1]
 
 # Get the name
-git_vars['repository.name'] = re.findall("([^:]+)\.git$", git_vars['remote.origin.url'])[0]
+git_vars['repository.name'] = re.findall(r"([^:]+)\.git$", git_vars['remote.origin.url'])[0]
 
 # retrieve current branch name
 git_vars['current.branch'] = subprocess.check_output([
@@ -83,7 +85,7 @@ with open(output_file, "w") as fh:
     for line in lines:
         new_line = line
         for entry in git_vars:
-            pattern = '{{\s*' + entry + '\s*}}'
+            pattern = r'{{\s*' + entry + r'\s*}}'
             if len(re.findall(pattern, new_line)):
                 new_line = re.sub(pattern, git_vars[entry], new_line)
                 if verbose:

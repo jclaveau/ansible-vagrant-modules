@@ -261,4 +261,3 @@
         - up_srv002_result.status_after == "running"
         - up_srv002_result.stderr_lines == []
         - up_srv002_result.stdout_lines == []
-

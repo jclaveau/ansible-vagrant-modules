@@ -29,7 +29,7 @@ Options:
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.up
+module: up
 short_description: vagrant up for Ansible
 description:
      - vagrant up for Ansible
@@ -37,12 +37,11 @@ version_added: "0.0.1"
 author:
     - "Jean Claveau (@jclaveau)"
 options:
-  names:
+  name:
     description:
-      - names of the VMs to start
-    type: list
-    required: false
-    default: []
+      - name of the VM to start
+    type: str
+    required: true
   provision:
     description:
       - Enable or disable provisioning
@@ -51,7 +50,8 @@ options:
   provision_with:
     description:
       - Enable only certain provisioners, by type or by name (shell and Ansible are supported; feel free to PR new ones).
-    type: bool
+    type: list
+    elements: str
   provider:
     type: str
     description:
@@ -101,7 +101,7 @@ def main():
             name=dict(type='str', required=True),
             provider=dict(type='str'),
             provision=dict(type='bool'),
-            provision_with=dict(type='list'),
+            provision_with=dict(type='list', elements='str'),
         )
     )
 
@@ -127,12 +127,12 @@ def main():
     )
 
     module.exit_json(
-      changed=changed,
-      duration=duration,
-      status_before=status_before,
-      status_after=status_after,
-      stdout_lines=list(vgw.stdout()),
-      stderr_lines=list(vgw.stderr())
+        changed=changed,
+        duration=duration,
+        status_before=status_before,
+        status_after=status_after,
+        stdout_lines=list(vgw.stdout()),
+        stderr_lines=list(vgw.stderr())
     )
 
 

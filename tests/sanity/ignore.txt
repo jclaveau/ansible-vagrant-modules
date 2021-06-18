@@ -1,0 +1,2 @@
+tests/integration_playbook/tests.sh shebang
+plugins/module_utils/VagrantWrapper.py consider-using-with

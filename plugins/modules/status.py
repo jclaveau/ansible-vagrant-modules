@@ -16,7 +16,7 @@ Usage: vagrant status [name|id]
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.status
+module: status
 short_description: vagrant status for one vm or all vms
 description:
      - vagrant status for one vm or all vms
@@ -47,7 +47,7 @@ EXAMPLES = '''
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
+from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import DEFAULT_ROOT
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.VagrantWrapper import VagrantWrapper
 
 
@@ -76,11 +76,11 @@ def main():
     )
 
     module.exit_json(
-      changed=changed,
-      duration=duration,
-      statuses=statuses,
-      stdout_lines=list(vgw.stdout()),
-      stderr_lines=list(vgw.stderr())
+        changed=changed,
+        duration=duration,
+        statuses=statuses,
+        stdout_lines=list(vgw.stdout()),
+        stderr_lines=list(vgw.stderr())
     )
 
 

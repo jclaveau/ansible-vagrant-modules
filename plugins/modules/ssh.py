@@ -22,7 +22,7 @@ Options:
 
 DOCUMENTATION = '''
 ---
-module: jclaveau.vagrant.ssh
+module: ssh
 short_description: vagrant ssh to a vm
 description:
      - vagrant ssh to a vm
@@ -34,10 +34,12 @@ options:
     description:
       - name of the VM to start
     type: str
+    required: true
   command:
     description:
       - The shell command to run on the vm
     type: str
+    required: true
   vagrant_root:
     description:
       - the folder where vagrant files will be stored
@@ -56,7 +58,7 @@ EXAMPLES = '''
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.basic import missing_required_lib  # https://docs.ansible.com/ansible-core/devel/dev_guide/testing/sanity/import.html
 
-from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import *
+from ansible_collections.jclaveau.vagrant.plugins.module_utils.constants import DEFAULT_ROOT
 from ansible_collections.jclaveau.vagrant.plugins.module_utils.VagrantWrapper import VagrantWrapper
 
 
@@ -89,10 +91,10 @@ def main():
     )
 
     module.exit_json(
-      changed=changed,
-      duration=duration,
-      stdout_lines=list(vgw.stdout()),
-      stderr_lines=list(vgw.stderr())
+        changed=changed,
+        duration=duration,
+        stdout_lines=list(vgw.stdout()),
+        stderr_lines=list(vgw.stderr())
     )
 
 

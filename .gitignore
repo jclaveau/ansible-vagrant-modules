@@ -5,7 +5,7 @@
 .vagrant-lock
 *~
 *.box
-/tests/output/
+/tests/output*
 /tests/integration/Vagrantfile
 /tests/integration/vagrant-hosts.yml
 /tests/integration/vagrant-groups.yml

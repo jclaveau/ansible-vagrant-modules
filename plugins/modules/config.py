@@ -14,7 +14,7 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: vagrant
+module: config
 short_description: Manage VMs in the Vagrantfile
 description:
      - Controls the content of the vagrant-hosts.yml file wich will be parsed by the Vagrantfile
@@ -101,7 +101,6 @@ def main():
             name=dict(type='str'),
             state=dict(),  # absent / present
             config=dict(type='dict'),
-            groups=dict(type='list', default=[]),
             vagrant_root=dict(default='.'),
         )
     )
@@ -109,7 +108,6 @@ def main():
     name = module.params.get('name')
     state = module.params.get('state')
     config_param = module.params.get('config')
-    groups_param = module.params.get('groups')
     root = module.params.get('vagrant_root')
 
     config = VagrantConfig(
@@ -119,12 +117,12 @@ def main():
 
     changed = False
     if state == 'absent':
-        results = config.turn_absent_from_config(name=name, config_filter=config_param, groups_filter=groups_param)
+        results = config.turn_absent_from_config(name=name, config_filter=config_param)
         changed = True
         module.exit_json(changed=changed, vms=results)
 
     elif state == 'present':  # replaces the existing config into the provided one
-        results = config.turn_present_in_config(name=name, new_config=config_param, new_groups=groups_param)
+        results = config.turn_present_in_config(name=name, new_config=config_param)
         if len(results['needs']):
             changed = True
         # needs destroy / up or need reload

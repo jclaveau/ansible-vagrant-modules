@@ -131,4 +131,3 @@
         - ssh_results.results | count == 2
         - ssh_results.results[0].stdout == ssh_results.results[0].item.Host
         - ssh_results.results[1].stdout == ssh_results.results[1].item.Host
-

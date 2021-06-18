@@ -19,11 +19,11 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install wheel dependency
+        run: pip install wheel
+
       - name: Install Ansible
         run: pip install ansible
-
-      - name: Install lockfile dependency
-        run: pip install lockfile
 
       - name: Install python-vagrant dependency
         run: pip install python-vagrant
