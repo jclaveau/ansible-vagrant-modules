@@ -175,7 +175,7 @@ The priority should ideally go to the [current target milestone issues](https://
  + clone it in a folder matching the following pattern `.../ansible_collections/jclaveau/ansible-vagrant-modules` (required by `Ansible`)
  + Enable hooks `git config core.hooksPath .githooks`
  + Install dependencies `pip install -r requirements.txt`
- + Run the tests at first time `./test.sh`
+ + Run the tests at first time `./tests.sh`
  + Before beginning to code, please open an issue to discuss the integration of your feature. `Ansible` has a specific philosophy and we must follow it. `Vagrant` also has its own way.
  + Make a PR
  + Your PR will merged once it's fully tested and reviewed
