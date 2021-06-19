@@ -1,4 +1,4 @@
-# WIP: Ansible Collection - [jclaveau.vagrant]({{ remote.origin.url }})
+# ALPHA: Ansible Collection - [jclaveau.vagrant]({{ remote.origin.url }})
 [![Sanity Tests](https://github.com/{{ repository.name }}/actions/workflows/sanity-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/sanity-tests.yaml?query=branch%3A{{ current.branch }})
 [![Integration Tests](https://github.com/{{ repository.name }}/actions/workflows/integration-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/integration-tests.yaml?query=branch%3A{{ current.branch }})
 [![Coverage](https://codecov.io/gh/{{ repository.name }}/branch/{{ current.branch }}/graph/badge.svg?token=qlZsPUMdwP)](https://app.codecov.io/gh/{{ repository.name }}/branch/{{ current.branch }})

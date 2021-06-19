@@ -1,7 +1,7 @@
 <!---
 This file is auto-generate by a github hook please modify readme.md if you don't want to loose your work
 -->
-# WIP: Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant-modules.git)
+# ALPHA: Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant-modules.git)
 [![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml/badge.svg?branch=main)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml?query=branch%3Amain)
 [![Integration Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests.yaml/badge.svg?branch=main)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests.yaml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/main/graph/badge.svg?token=qlZsPUMdwP)](https://app.codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/main)
