@@ -9,7 +9,7 @@
 /tests/integration/Vagrantfile
 /tests/integration/vagrant-hosts.yml
 /tests/integration/vagrant-groups.yml
-/tests/integration_playbook/Vagrantfile
-/tests/integration_playbook/vagrant-hosts.yml
-/tests/integration_playbook/vagrant-groups.yml
+/tests/integration/targets/add_host/in_playbook/Vagrantfile
+/tests/integration/targets/add_host/in_playbook/vagrant-hosts.yml
+/tests/integration/targets/add_host/in_playbook/vagrant-groups.yml
 __pycache__

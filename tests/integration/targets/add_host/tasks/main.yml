@@ -1,0 +1,85 @@
+# https://github.com/jclaveau/ansible-vagrant-modules/issues/22
+#
+# THIS IS WHAT WORKS IN PLAYBOOK BUT NOT IN INTEGRATION TESTS
+# - name: Add a vm to the Vagrantfile
+#   jclaveau.vagrant.config:
+#   args:
+#     state: "present"
+#     name: "srv001"
+#     config:
+#       box: debian/buster64
+
+# - name: Fire up a vagrant instances to log into
+#   local_action: jclaveau.vagrant.up
+#   args:
+#     name: "srv001"
+#   register: vagrant_up_result
+
+# - name: Retrieve ssh config
+#   local_action: jclaveau.vagrant.ssh_config
+#   args:
+#     name: "srv001"
+#   register: vagrant_ssh_config_result
+
+# - name: Adds this node as e member of Ansible's inventory
+#   ansible.builtin.add_host:
+#     groupname: vagrant_hosts
+#     hostname: '{{item.Host}}'
+#     ansible_ssh_port: '{{item.Port}}'
+#     ansible_ssh_host: '{{item.HostName}}'
+#     ansible_ssh_private_key_file: '{{item.IdentityFile}}'
+#     ansible_ssh_args: ' -o StrictHostKeyChecking=no -o IdentitiesOnly=yes ' # avoids ssh key storing and fixes warnings "sftp|scp transfer mechanism failed on [127.0.0.1]"
+#   loop: '{{ vagrant_ssh_config_result.ssh_configs }}'
+#   delegate_to: localhost
+
+- name: Saving hosts list
+  ansible.builtin.set_fact:
+    hosts_before: "{{ ansible_play_batch }}"
+
+- name: List hosts
+  ansible.builtin.debug:
+    var: hosts_before
+
+
+- name: Add a host
+  ansible.builtin.add_host:
+    groupname: vagrant_hosts
+    hostname: 'my_new_host'
+  # delegate_to: localhost
+
+# - name: List hosts
+#   ansible.builtin.debug:
+#     var: ansible_play_batch
+
+- name: No new host should be added
+  assert:
+    that:
+      - ansible_play_batch == hosts_before
+
+- name: Add a host delegated to localhost
+  ansible.builtin.add_host:
+    groupname: vagrant_hosts
+    hostname: 'my_new_host'
+  delegate_to: localhost
+
+- name: No new host should be added
+  assert:
+    that:
+      - ansible_play_batch == hosts_before
+
+
+- name: Add a host delegated to localhost with delegate_facts
+  ansible.builtin.add_host:
+    groupname: vagrant_hosts
+    hostname: 'my_new_host'
+  delegate_to: localhost
+  delegate_facts: true
+
+- name: No new host should be added
+  assert:
+    that:
+      - ansible_play_batch == hosts_before
+
+# test with connection = local
+# update readme
+

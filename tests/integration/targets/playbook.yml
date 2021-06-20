@@ -1,0 +1,8 @@
+# This playbook is useful for listing tags only as --list-tags is absent from ansible-test
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - import_tasks:
+      file: commands/tasks/main.yml
+  - import_tasks:
+      file: config/tasks/main.yml
