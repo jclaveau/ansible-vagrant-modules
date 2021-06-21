@@ -205,7 +205,8 @@ def configure_provider_virtualbox(node, host)
       end
     end
 
-    if host.key? 'provider_options_inline' then
+      # TODO factorize
+      if host.key? 'provider_options_inline' then
       host['provider_options_inline'].each do |line|
         eval("provider."+line)
       end
@@ -229,23 +230,38 @@ def configure_provider_libvirt(node, host)
     provider.cpus = host['cpus'] if host.key? 'cpus' # default 1
 
     if host.key? 'libvirt_options' then
-      # is list or is dict
-
       host['libvirt_options'].each do |key, value|
-        # respond_to?
-        if provider.method_defined?(key) then
 
-        elsif provider.instance_variable_defined?(key) then
+        is_method_call = false
+        if value.is_a?(Array) then
+          # p value
+          # exit
+
+          value.each do |array_item|
+            if array_item.is_a?(Array) and (array_item.length() == 1 or array_item.length() == 2) and
+              array_item[0].is_a?(Symbol) and
+              (array_item.length() == 1 or (array_item[1].is_a?(Array) or array_item[1].is_a?(Hash))) then
+              is_method_call = true
+            end
+          end
+        end
+
+        if is_method_call then
+          value.each do |array_item|
+            provider.send(key, *array_item)
+          end
+        else
+          # use send? https://stackoverflow.com/questions/3167966/ruby-using-object-send-for-assigning-variables
           eval("provider."+key+" = value")
         end
       end
 
-    # provider.nested = true # default false
-    # provider.storage :file, :size => '1G' # additionnal disks
-    # provider.keymap # default en-us
-    # provider.machine_arch
-    # provider.features = ['acpi', 'apic', 'pae' ]
-
+      # TODO factorize
+      if host.key? 'provider_options_inline' then
+        host['provider_options_inline'].each do |line|
+          eval("provider."+line)
+        end
+      end
     end
   end
 end
@@ -286,12 +302,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       virtualbox_guest_additions(node, host)
 
-      # p "plop"
-      # exit
       # if not host.key? 'provider' || host['provider'] == 'virtualbox' then
       if host['provider'] == 'virtualbox' then
-        # p "plop"
-        # exit
         configure_provider_virtualbox(node, host)
       elsif host['provider'] == 'libvirt' then
         configure_provider_libvirt(node, host)

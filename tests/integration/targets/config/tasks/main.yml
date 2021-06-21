@@ -514,3 +514,6 @@
 # Providers tests
 - import_tasks:
     file: providers_virtualbox_test.yml
+
+- import_tasks:
+    file: providers_libvirt_test.yml
