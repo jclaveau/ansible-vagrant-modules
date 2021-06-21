@@ -8,16 +8,22 @@
   ansible.builtin.file:
     path: ./vagrant-hosts.yml
     state: absent
+  tags:
+   - always
 
-- name: Start with no Vagrantfile
-  ansible.builtin.file:
-    path: ./Vagrantfile
-    state: absent
+# - name: Start with no Vagrantfile
+#   ansible.builtin.file:
+#     path: ./Vagrantfile
+#     state: absent
+#   tags:
+#    - always
 
 - name: Start with no vagrant-groups.yml
   ansible.builtin.file:
     path: ./vagrant-groups.yml
     state: absent
+  tags:
+   - always
 
 - name: Create synced folders
   ansible.builtin.file:
@@ -504,3 +510,7 @@
       - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
   with_file:
     - ./vagrant-hosts.yml
+
+# Providers tests
+- import_tasks:
+    file: providers_virtualbox_test.yml

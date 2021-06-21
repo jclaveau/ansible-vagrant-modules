@@ -1,4 +1,5 @@
 
+
 # One Vagrantfile to rule them all!
 #
 # This is a generic Vagrantfile that can be used without modification in
@@ -47,7 +48,6 @@ FORCE_LOCAL_RUN = false
 #
 
 VAGRANTFILE_API_VERSION = '2'
-PROJECT_NAME = '/' + File.basename(Dir.getwd)
 
 # set custom vagrant-hosts file
 vagrant_hosts = ENV['VAGRANT_HOSTS'] ? ENV['VAGRANT_HOSTS'] : 'vagrant-hosts.yml'
@@ -164,11 +164,7 @@ def provision_shell(node, host)
   # Could be useful https://stackoverflow.com/questions/15461898/passing-variable-to-a-shell-script-provisioner-in-vagrant
   # config.vm.provision "shell" do |s|
   #   s.binary = true # Replace Windows line endings with Unix line endings.
-  #   s.inline = %Q(/usr/bin/env    \
-  #     TRACE=#{ENV['TRACE']}       \
-  #     VERBOSE=#{ENV['VERBOSE']}   \
-  #     FORCE=#{ENV['FORCE']}       \
-  #     bash my_script.sh)
+  #   s.inline = %Q(/usr/bin/env      #     TRACE=#{ENV['TRACE']}         #     VERBOSE=#{ENV['VERBOSE']}     #     FORCE=#{ENV['FORCE']}         #     bash my_script.sh)
   # end
 end
 
@@ -187,6 +183,88 @@ def virtualbox_guest_additions(node, host)
   end
 end
 
+def configure_provider_virtualbox(node, host)
+  # https://docs.oracle.com/en/virtualization/virtualbox/6.0/user/vboxmanage-modifyvm.html
+  node.vm.provider :virtualbox do |provider|
+    provider.memory = host['memory'] if host.key? 'memory'
+    provider.cpus = host['cpus'] if host.key? 'cpus'
+
+    if host.key? 'virtualbox_options' then
+      host['virtualbox_options'].each do |key, value|
+        if key.match(/^--/) then
+          provider.customize ['modifyvm', :id, key, value]
+        else
+          eval("provider."+key+" = value")
+        end
+      end
+    end
+
+    if host.key? 'provider_options_inline' then
+      host['provider_options_inline'].each do |line|
+        eval("provider."+line)
+      end
+    end
+  end
+end
+
+def configure_provider_libvirt(node, host)
+  # https://github.com/vagrant-libvirt/vagrant-libvirt#provider-options
+
+  # TODO check that it is required
+  # Alternative solution https://stackoverflow.com/a/57708188/2714285 ?
+  # if Vagrant.has_plugin?("vagrant-libvirt") then
+  #   puts "The vagrant-libvirt plugin is required. Please install it with:"
+  #   puts "$ vagrant plugin install vagrant-libvirt"
+  #   return
+  # end
+
+  node.vm.provider :libvirt do |provider|
+    provider.memory = host['memory'] if host.key? 'memory' # default 512
+    provider.cpus = host['cpus'] if host.key? 'cpus' # default 1
+
+    if host.key? 'libvirt_options' then
+      # is list or is dict
+
+      host['libvirt_options'].each do |key, value|
+        # respond_to?
+        if provider.method_defined?(key) then
+
+        elsif provider.instance_variable_defined?(key) then
+          eval("provider."+key+" = value")
+        end
+      end
+
+    # provider.nested = true # default false
+    # provider.storage :file, :size => '1G' # additionnal disks
+    # provider.keymap # default en-us
+    # provider.machine_arch
+    # provider.features = ['acpi', 'apic', 'pae' ]
+
+    end
+  end
+end
+
+def configure_provider_docker(node, host)
+  # https://docs.docker.com/config/containers/resource_constraints/
+  # https://stackoverflow.com/questions/47919339/vagrant-with-docker-provider-specifying-cpu-and-memory
+  # https://www.vagrantup.com/docs/providers/docker/configuration
+  node.vm.provider :docker do |provider|
+
+    # provider.image = "foo/bar" # dup of box? https://www.vagrantup.com/docs/providers/docker/basics
+    # https://www.vagrantup.com/docs/providers/docker/boxes
+
+    provider.build_dir = "."
+    provider.vagrant_vagrantfile = ".../path_to_vagrantfile_for_host_vm"
+    provider.force_host_vm = false
+    provider.has_ssh = true
+    provider.remains_running = true
+
+    provider.create_args = ['--cpuset-cpus=2']
+    provider.create_args = ['--memory=6g']
+  end
+end
+
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   hosts.each do |host|
     config.vm.define host['name'] do |node|
@@ -202,14 +280,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       virtualbox_guest_additions(node, host)
 
-      node.vm.provider :virtualbox do |vb|
-        vb.memory = host['memory'] if host.key? 'memory'
-        vb.cpus = host['cpus'] if host.key? 'cpus'
-
-        # Add VM to a VirtualBox group
-        # WARNING: if the name of the current directory is the same as the
-        # host name, this will fail.
-        vb.customize ['modifyvm', :id, '--groups', PROJECT_NAME]
+      # p "plop"
+      # exit
+      # if not host.key? 'provider' || host['provider'] == 'virtualbox' then
+      if host['provider'] == 'virtualbox' then
+        # p "plop"
+        # exit
+        configure_provider_virtualbox(node, host)
+      elsif host['provider'] == 'libvirt' then
+        configure_provider_libvirt(node, host)
+      elsif host['provider'] == 'docker' then
+        configure_provider_docker(node, host)
       end
 
       # Shell provisioning
@@ -223,3 +304,4 @@ end
 
 # -*- mode: ruby -*-
 # vi: ft=ruby :
+
