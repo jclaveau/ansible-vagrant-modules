@@ -36,9 +36,6 @@ require 'yaml'
 # set default LC_ALL for all BOXES
 ENV["LC_ALL"] = "en_US.UTF-8"
 
-# Set your default base box here
-DEFAULT_BASE_BOX = 'bento/centos-7.6'
-
 # When set to `true`, Ansible will be forced to be run locally on the VM
 # instead of from the host machine (provided Ansible is installed).
 FORCE_LOCAL_RUN = false
@@ -46,7 +43,6 @@ FORCE_LOCAL_RUN = false
 #
 # No changes needed below this point
 #
-
 VAGRANTFILE_API_VERSION = '2'
 
 # set custom vagrant-hosts file
@@ -228,9 +224,6 @@ def configure_provider_libvirt(node, host)
 
         is_method_call = false
         if value.is_a?(Array) then
-          # p value
-          # exit
-
           value.each do |array_item|
             if array_item.is_a?(Array) and (array_item.length() == 1 or array_item.length() == 2) and
               array_item[0].is_a?(Symbol) and
@@ -264,29 +257,74 @@ def configure_provider_docker(node, host)
   # https://docs.docker.com/config/containers/resource_constraints/
   # https://stackoverflow.com/questions/47919339/vagrant-with-docker-provider-specifying-cpu-and-memory
   # https://www.vagrantup.com/docs/providers/docker/configuration
+
+  # provider.image = "foo/bar" # dup of box? https://www.vagrantup.com/docs/providers/docker/basics
+  # https://www.vagrantup.com/docs/providers/docker/boxes
+
   node.vm.provider :docker do |provider|
+    # !!! This will loop several times
+    if host.key? 'memory' then
+      if host['docker_options']['create_args'].is_a?(Hash) then
+        if host['docker_options']['create_args'].key? '--memory' then
+          warn("Warning: 'memory' parameter " + host['memory'].to_s + " overriden by create_args --memory=" + host['docker_options']['create_args']['--memory'].to_s)
+        else
+          host['docker_options']['create_args']['--memory'] = host['memory']
+        end
+      end
+    end
 
-    # provider.image = "foo/bar" # dup of box? https://www.vagrantup.com/docs/providers/docker/basics
-    # https://www.vagrantup.com/docs/providers/docker/boxes
+    if host.key? 'cpus' then
+      if host['docker_options']['create_args'].is_a?(Hash) then
+        if host['docker_options']['create_args'].key? '--cpuset-cpus' then
+          warn("Warning: 'cpus' parameter " + host['cpus'].to_s + " overriden by create_args --cpuset-cpus=" + host['docker_options']['create_args']['--cpuset-cpus'].to_s)
+        else
+          host['docker_options']['create_args']['--cpuset-cpus'] = host['cpus']
+        end
+      end
+    end
 
-    provider.build_dir = "."
-    provider.vagrant_vagrantfile = ".../path_to_vagrantfile_for_host_vm"
-    provider.force_host_vm = false
-    provider.has_ssh = true
-    provider.remains_running = true
+    if host.key? 'docker_options' then
+      # enabling ssh by default for provisionning
+      host['docker_options']['has_ssh'] = true if not host['docker_options'].key? 'has_ssh'
+      host['docker_options']['remains_running'] = true if not host['docker_options'].key? 'remains_running'
 
-    provider.create_args = ['--cpuset-cpus=2']
-    provider.create_args = ['--memory=6g']
+      host['docker_options'].each do |key, value|
+
+        if key == 'create_args' and value.is_a?(Hash) then
+          host['docker_options']['create_args'] = host['docker_options']['create_args'].map do |k, v|
+            k.to_s + '=' + v.to_s
+          end
+        end
+
+        if key == 'link' and value.is_a?(Array) and len(value) then
+          value.each do |array_item|
+            provider.send(key, *array_item)
+          end
+        else
+          # use send? https://stackoverflow.com/questions/3167966/ruby-using-object-send-for-assigning-variables
+          eval("provider."+key+" = value")
+        end
+      end
+
+      # TODO factorize
+      if host.key? 'provider_options_inline' then
+        host['provider_options_inline'].each do |line|
+          eval("provider."+line)
+        end
+      end
+    end
+
   end
 end
-
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   hosts.each do |host|
     config.vm.define host['name'] do |node|
-      node.vm.box = host['box'] ||= DEFAULT_BASE_BOX
       node.vm.box_url = host['box_url'] if host.key? 'box_url'
       node.vm.hostname = host['name']
+
+      # disable box update checking by default
+      node.vm.box_check_update = (host.key? 'box_check_update') ? host['box_check_update'] : false
 
       node.vm.network :private_network, **network_options(host)
 

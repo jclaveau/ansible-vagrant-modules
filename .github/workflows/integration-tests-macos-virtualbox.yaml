@@ -1,4 +1,4 @@
-name: Integration Tests
+name: Integration Tests MacOS/VirtualBox
 on: [ push ]
 jobs:
   # https://stackoverflow.com/questions/66261101/using-vagrant-on-github-actions-ideally-incl-virtualbox
@@ -7,6 +7,9 @@ jobs:
     env:
       PY_COLORS: '1'
       ANSIBLE_FORCE_COLOR: '1'
+      VIRTUALBOX_ENABLED: true
+      LIBVIRT_ENABLED: false
+      DOCKER_ENABLED: false
     defaults:
       run:
         working-directory: ansible_collections/jclaveau/vagrant
@@ -16,6 +19,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: ansible_collections/jclaveau/vagrant
+
+      - name: Install truncate
+        run: brew install truncate
+
+      - name: Pass environment variables to the tests
+        run: ./tests/integration/integration_config.sh
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -46,7 +55,7 @@ jobs:
         run: ./tests/integration/targets/add_host/in_playbook/tests.sh
 
       - name: Run the integration tests
-        run: ansible-test integration --python 3.8 --coverage --color
+        run: ansible-test integration --python 3.8 --color --coverage --skip-tags docker --skip-tags libvirt
 
       - name: Prepare coverage for Codecov.io
         run: ansible-test coverage xml --color

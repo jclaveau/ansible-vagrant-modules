@@ -1,0 +1,146 @@
+- name: Start with no vagrant-hosts.yml
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: absent
+  tags:
+    - always
+
+- name: create empty file to avoid failure due to with_file # https://github.com/ansible/ansible/issues/16917
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: touch
+  tags:
+    - always
+
+- name: docker config tests
+  tags:
+    - providers
+    - providers::docker
+    - docker
+  # when: docker_enabled | default(false)
+  block:
+  - name: Add one vm using docker
+    jclaveau.vagrant.config:
+    args:
+      state: "present"
+      name: "srv001"
+      config:
+        box: tknerr/baseimage-ubuntu-16.04 # https://app.vagrantup.com/tknerr/boxes/baseimage-ubuntu-16.04
+        memory: 8000000
+        cpus: 3
+        provider: "docker"
+        docker_options:
+          # git_repo: ''
+          image: 'tknerr/baseimage-ubuntu:18.04' # https://hub.docker.com/r/tknerr/baseimage-ubuntu
+          create_args:
+            --cpuset-cpus: 1
+          # link:
+          #   - - "db:db"
+          ports:
+          - "9999:99"
+        provider_options_inline:
+        - 'name = "my-test-container"'
+    register: vagrant_config_add_results
+
+  - name: dbg config add results
+    ansible.builtin.debug:
+      var: vagrant_config_add_results
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant config update should succeed
+    assert:
+      that:
+        - vagrant_config_add_results is success
+        - vagrant_config_add_results is changed
+        - vagrant_config_add_results.vms.needs == ['up']
+
+  - name: Register expected vagrant-hosts.yml content
+    no_log: true
+    ansible.builtin.set_fact:
+      expected_vagrant_hosts_content:
+      - box: tknerr/baseimage-ubuntu-16.04
+        cpus: 3
+        docker_options:
+          create_args:
+            --cpuset-cpus: 1
+          image: tknerr/baseimage-ubuntu:18.04
+          ports:
+          - 9999:99
+        memory: 8000000
+        name: srv001
+        provider: docker
+        provider_options_inline:
+        - name = "my-test-container"
+
+  - name: vagrant-hosts.yml should contain
+    assert:
+      that:
+        - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+    with_file:
+      - ./vagrant-hosts.yml
+
+  - name: Destroy existing vm
+    jclaveau.vagrant.destroy:
+    args:
+      name: "srv001"
+
+  - name: Boot the vm
+    jclaveau.vagrant.up:
+    args:
+      name: "srv001"
+    register: vm_boot_log
+
+  - name: dbg vm_boot_log
+    ansible.builtin.debug:
+      var: vm_boot_log
+    tags:
+    - never
+    - debug
+
+  - name: vm_boot_log should contain
+    assert:
+      that:
+        - '"    srv001:   Name: my-test-container" in vm_boot_log.stdout_lines'
+        - '"    srv001:  Image: tknerr/baseimage-ubuntu:18.04" in vm_boot_log.stdout_lines'
+        - '"    srv001:   Port: 127.0.0.1:2222:22" in vm_boot_log.stdout_lines'
+        - '"    srv001:   Port: 9999:99" in vm_boot_log.stdout_lines'
+        - '"    srv001: SSH address: 127.0.0.1:2222" in vm_boot_log.stdout_lines'
+        - '"==> srv001: Machine booted and ready!" in vm_boot_log.stdout_lines'
+        - >
+          "Warning: 'cpus' parameter 3 overriden by create_args --cpuset-cpus=1" in vm_boot_log.stderr_lines
+
+  - name: extract the container id
+    set_fact:
+      docker_id: "{{ vm_boot_log.stdout_lines | map('regex_search', '^    srv001: Container created: \\w+') | select('string') | first | regex_search('\\w+$') }}"
+
+  - name: Docker id found
+    ansible.builtin.debug:
+      var: docker_id
+    tags:
+    - never
+    - debug
+
+  - name: Retrieve vm info
+    shell: "docker inspect {{ docker_id }}"
+    register: vm_info
+
+  - name: dbg vm info
+    ansible.builtin.debug:
+      var: vm_info
+    tags:
+    - never
+    - debug
+
+  - name: VBoxManage showvminfo my_vm should succeed
+    assert:
+      that:
+        - vm_info is success
+        - '"            \"CpusetCpus\": \"1\"," in vm_info.stdout_lines'
+        - '"            \"Memory\": 8000000," in vm_info.stdout_lines'
+
+  - name: Destroy the vm
+    jclaveau.vagrant.destroy:
+    args:
+      name: "srv001"

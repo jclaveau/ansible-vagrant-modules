@@ -1,8 +1,4 @@
 ---
-# - name: Find out playbook's path
-#   shell: pwd
-#   register: playbook_path_output
-# - debug: var=playbook_path_output.stdout
 
 - name: Start with no vagrant-hosts.yml
   ansible.builtin.file:
@@ -517,3 +513,6 @@
 
 - import_tasks:
     file: providers_libvirt_test.yml
+
+- import_tasks:
+    file: providers_docker_test.yml

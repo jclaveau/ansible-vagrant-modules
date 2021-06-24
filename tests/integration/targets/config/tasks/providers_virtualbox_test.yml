@@ -1,7 +1,22 @@
+- name: Start with no vagrant-hosts.yml
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: absent
+  tags:
+    - always
+
+- name: create empty file to avoid failure due to with_file # https://github.com/ansible/ansible/issues/16917
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: touch
+  tags:
+    - always
+
 - name: virtualbox config tests
   tags:
     - providers
     - providers::virtualbox
+  when: virtualbox_enabled | default(false)
   block:
   - name: Add one vm using virtualbox
     jclaveau.vagrant.config:

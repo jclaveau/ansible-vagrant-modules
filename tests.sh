@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -e
+
+./tests/integration/integration_config.sh
 
 # integration tests
 # --no-temp-workdir avoids Vagrant creation of vms in directories which are deleted after the run

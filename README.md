@@ -3,7 +3,13 @@ This file is auto-generate by a github hook please modify readme.md if you don't
 -->
 # ALPHA: Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant-modules.git)
 [![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml?query=branch%3Aconfigurable_providers)
-[![Integration Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests.yaml?query=branch%3Aconfigurable_providers)
+
+[![Integration Tests MacOS/VirtualBox](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-macos-virtualbox.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-macos-virtualbox.yaml?query=branch%3Aconfigurable_providers)
+
+[![Integration Tests Ubuntu/Libvirt](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-ubuntu-libvirt.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-ubuntu-libvirt.yaml?query=branch%3Aconfigurable_providers)
+
+[![Integration Tests Ubuntu/Docker](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-ubuntu-docker.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-ubuntu-docker.yaml?query=branch%3Aconfigurable_providers)
+
 [![Coverage](https://codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/configurable_providers/graph/badge.svg?token=qlZsPUMdwP)](https://app.codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/configurable_providers)
 
 

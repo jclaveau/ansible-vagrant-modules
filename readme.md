@@ -1,6 +1,12 @@
 # ALPHA: Ansible Collection - [jclaveau.vagrant]({{ remote.origin.url }})
 [![Sanity Tests](https://github.com/{{ repository.name }}/actions/workflows/sanity-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/sanity-tests.yaml?query=branch%3A{{ current.branch }})
-[![Integration Tests](https://github.com/{{ repository.name }}/actions/workflows/integration-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/integration-tests.yaml?query=branch%3A{{ current.branch }})
+
+[![Integration Tests MacOS/VirtualBox](https://github.com/{{ repository.name }}/actions/workflows/integration-tests-macos-virtualbox.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/integration-tests-macos-virtualbox.yaml?query=branch%3A{{ current.branch }})
+
+[![Integration Tests Ubuntu/Libvirt](https://github.com/{{ repository.name }}/actions/workflows/integration-tests-ubuntu-libvirt.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/integration-tests-ubuntu-libvirt.yaml?query=branch%3A{{ current.branch }})
+
+[![Integration Tests Ubuntu/Docker](https://github.com/{{ repository.name }}/actions/workflows/integration-tests-ubuntu-docker.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/integration-tests-ubuntu-docker.yaml?query=branch%3A{{ current.branch }})
+
 [![Coverage](https://codecov.io/gh/{{ repository.name }}/branch/{{ current.branch }}/graph/badge.svg?token=qlZsPUMdwP)](https://app.codecov.io/gh/{{ repository.name }}/branch/{{ current.branch }})
 
 
