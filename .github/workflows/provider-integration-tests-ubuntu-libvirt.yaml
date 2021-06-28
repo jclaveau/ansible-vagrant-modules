@@ -1,17 +1,12 @@
-name: Integration Tests Ubuntu/Libvirt
+name: Ubuntu / Libvirt
 on: [ push ]
 jobs:
-  # !!!!! FAILS DUE TO https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1133
-  # !!!!! Libvirt with kvm doesn't work without reboot
-  integration-tests-on-ubuntu-with-libvirt:
+  provider-integration-tests-libvirt-on-ubuntu:
     runs-on: ubuntu-latest
     env:
       PY_COLORS: '1'
       ANSIBLE_FORCE_COLOR: '1'
       VIRTUALBOX_ENABLED: false
-      LIBVIRT_ENABLED: true
-      DOCKER_ENABLED: false
-      LIBVIRT_SOCKET:
       QEMU_PATH:
       QEMU_USE_SESSION: true
       LIBVIRT_IMAGES_PATH: '/home/runner/work/vagrant_images/'
@@ -101,16 +96,16 @@ jobs:
       #       ${{ runner.os }}-vagrant-
 
       - name: Run the integration tests
-        run: sudo ansible-test integration --python 3.8  --color --coverage config --tags libvirt
+        run: sudo ansible-test integration --python 3.8 --no-temp-workdir --color --coverage config --tags libvirt
 
       - name: Prepare coverage for Codecov.io
         run: sudo ansible-test coverage xml --color
 
-      # - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
-      #   with:
-      #     # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-      #     directory: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
-      #     flags: integrationtests # optional
-      #     name: codecov-vagrant-collection-integration-tests # optional
-      #     fail_ci_if_error: true # optional (default = false)
-      #     verbose: true # optional (default = false)
+      - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
+        with:
+          # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          directory: /home/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
+          flags: integrationtests, libvirt
+          name: integration-tests-ubuntu-libvirt
+          fail_ci_if_error: true
+          # verbose: true # optional (default = false)

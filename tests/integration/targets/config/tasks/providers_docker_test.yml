@@ -17,7 +17,6 @@
     - providers
     - providers::docker
     - docker
-  # when: docker_enabled | default(false)
   block:
   - name: Add one vm using docker
     jclaveau.vagrant.config:
@@ -31,7 +30,7 @@
         provider: "docker"
         docker_options:
           # git_repo: ''
-          image: 'tknerr/baseimage-ubuntu:18.04' # https://hub.docker.com/r/tknerr/baseimage-ubuntu
+          # image: 'tknerr/baseimage-ubuntu:18.04' # https://hub.docker.com/r/tknerr/baseimage-ubuntu
           create_args:
             --cpuset-cpus: 1
           # link:
@@ -65,7 +64,7 @@
         docker_options:
           create_args:
             --cpuset-cpus: 1
-          image: tknerr/baseimage-ubuntu:18.04
+          # image: tknerr/baseimage-ubuntu:18.04
           ports:
           - 9999:99
         memory: 8000000
@@ -103,7 +102,7 @@
     assert:
       that:
         - '"    srv001:   Name: my-test-container" in vm_boot_log.stdout_lines'
-        - '"    srv001:  Image: tknerr/baseimage-ubuntu:18.04" in vm_boot_log.stdout_lines'
+        - '"    srv001:  Image: tknerr/baseimage-ubuntu:16.04" in vm_boot_log.stdout_lines'
         - '"    srv001:   Port: 127.0.0.1:2222:22" in vm_boot_log.stdout_lines'
         - '"    srv001:   Port: 9999:99" in vm_boot_log.stdout_lines'
         - '"    srv001: SSH address: 127.0.0.1:2222" in vm_boot_log.stdout_lines'

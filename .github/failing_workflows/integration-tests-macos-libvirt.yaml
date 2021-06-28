@@ -1,7 +1,10 @@
 name: Integration Tests MacOS/Libvirt
 on: [ push ]
 jobs:
-  # Libvirt requires a reboot after installation on Ubuntu 20.04 which is not possible here
+  # We cannot run this every time due to: https://github.com/actions/toolkit/issues/399
+  #
+  # `list_all_networks': Call to virConnectListAllNetworks failed:
+  # this function is not supported by the connection driver: virConnectListAllNetworks (Libvirt::RetrieveError)
   # !!!!! FAILS DUE TO https://gitlab.com/libvirt/libvirt/-/issues/75
   # !!!!! and https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1017
   # !!!!! or https://github.com/dmacvicar/terraform-provider-libvirt/issues/640
@@ -10,9 +13,6 @@ jobs:
     env:
       PY_COLORS: '1'
       ANSIBLE_FORCE_COLOR: '1'
-      VIRTUALBOX_ENABLED: false
-      LIBVIRT_ENABLED: true
-      DOCKER_ENABLED: false
       LIBVIRT_SOCKET: /Users/runner/.cache/libvirt/libvirt-sock
       QEMU_PATH: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/integration/qemu-system-x86_64.py
       QEMU_USE_SESSION: true
@@ -111,13 +111,8 @@ jobs:
       - name: Install vagrant-libvirt
         run: vagrant plugin install vagrant-libvirt
 
-
-
-
-
       - name: Install Vagrant
         run: vagrant plugin list
-
 
       - name: Install truncate
         run: brew install truncate

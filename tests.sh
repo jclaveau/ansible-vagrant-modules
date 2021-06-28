@@ -12,4 +12,4 @@ ansible-test coverage xml --color
 ./tests/integration/targets/add_host/in_playbook/tests.sh
 
 # sanity tests
-ansible-test sanity --python 3.8
+ansible-test sanity --python 3.8 --exclude .githooks/

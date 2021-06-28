@@ -1,1 +1,2 @@
-tests/integration_playbook/tests.sh shebang
+tests/integration/targets/add_host/in_playbook/tests.sh shebang
+tests/integration/integration_config.sh shebang

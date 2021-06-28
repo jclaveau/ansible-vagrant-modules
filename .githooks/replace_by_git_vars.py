@@ -76,32 +76,33 @@ git_vars['current.version'] = git_vars['tags'][0] if len(git_vars['tags']) else 
 if verbose:
     print(json.dumps(git_vars, indent=4))
 
-lines = open(input_file).readlines()
-changed = False
-with open(output_file, "w") as fh:
-    fh.write('<!---\n')  # https://stackoverflow.com/a/4829998/2714285
-    fh.write("This file is auto-generate by a github hook please modify " + input_file + " if you don't want to loose your work\n")
-    fh.write('-->\n')
-    for line in lines:
-        new_line = line
-        for entry in git_vars:
-            pattern = r'{{\s*' + entry + r'\s*}}'
-            if len(re.findall(pattern, new_line)):
-                new_line = re.sub(pattern, git_vars[entry], new_line)
-                if verbose:
-                    print("Found {{ " + entry + " }} in:\n   " + line + "=> " + new_line)
-                changed = True
-        fh.write(new_line)
+with open(input_file) as f:
+    lines = f.readlines()
+    changed = False
+    with open(output_file, "w") as fh:
+        fh.write('<!---\n')  # https://stackoverflow.com/a/4829998/2714285
+        fh.write("This file is auto-generate by a github hook please modify " + input_file + " if you don't want to loose your work\n")
+        fh.write('-->\n')
+        for line in lines:
+            new_line = line
+            for entry in git_vars.keys():
+                pattern = r'{{\s*' + entry + r'\s*}}'
+                if len(re.findall(pattern, new_line)):
+                    new_line = re.sub(pattern, git_vars[entry], new_line)
+                    if verbose:
+                        print("Found {{ " + entry + " }} in:\n   " + line + "=> " + new_line)
+                    changed = True
+            fh.write(new_line)
 
-if not changed and verbose:
-    print("No variable found in " + output_file)
+    if not changed and verbose:
+        print("No variable found in " + output_file)
 
-subprocess.check_output(["git", "add", output_file])
+    subprocess.check_output(["git", "add", output_file])
 
-# If output_file and input_file are the same only the replacement will be added for commit
-with open(input_file, "w") as fh:
-    for line in lines:
-        fh.write(line)
+    # If output_file and input_file are the same only the replacement will be added for commit
+    with open(input_file, "w") as fh:
+        for line in lines:
+            fh.write(line)
 
-if verbose:
-    print(output_file + " variables replaced")
+    if verbose:
+        print(output_file + " variables replaced")

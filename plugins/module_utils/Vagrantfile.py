@@ -6,6 +6,7 @@
 VAGRANTFILE_CONTENT = """
 
 
+
 # One Vagrantfile to rule them all!
 #
 # This is a generic Vagrantfile that can be used without modification in
@@ -38,6 +39,8 @@ VAGRANTFILE_CONTENT = """
 
 require 'rbconfig'
 require 'yaml'
+# require 'getoptlong'
+require 'optparse'
 
 # set default LC_ALL for all BOXES
 ENV["LC_ALL"] = "en_US.UTF-8"
@@ -60,6 +63,11 @@ if File.file?(vagrant_groups)
   groups = YAML.load_file(File.join(Dir.pwd, vagrant_groups))
 else
   groups = []
+end
+
+requested_provider = (ENV['VAGRANT_DEFAULT_PROVIDER'] || :virtualbox).to_sym
+OptionParser.new do |opt|
+  opt.on('--provider PROVIDER') { |o| requested_provider = o }
 end
 
 # {{{ Helper functions
@@ -97,7 +105,7 @@ def network_options(host)
   end
 
   options[:mac] = host['mac'].gsub(/[-:]/, '') if host.key?('mac')
-  options[:auto_config] = host['auto_config'] if host.key?('auto_config')
+  options[:auto_config] = host.key?('auto_config') ? host['auto_config'] : true
   options[:virtualbox__intnet] = true if host.key?('intnet') && host['intnet']
   options
 end
@@ -162,12 +170,6 @@ def provision_shell(node, host)
       eval("shell."+key+" = host['shell'][key]")
     end
   end
-
-  # Could be useful https://stackoverflow.com/questions/15461898/passing-variable-to-a-shell-script-provisioner-in-vagrant
-  # config.vm.provision "shell" do |s|
-  #   s.binary = true # Replace Windows line endings with Unix line endings.
-  #   s.inline = %Q(/usr/bin/env      #     TRACE=#{ENV['TRACE']}         #     VERBOSE=#{ENV['VERBOSE']}     #     FORCE=#{ENV['FORCE']}         #     bash my_script.sh)
-  # end
 end
 
 def virtualbox_guest_additions(node, host)
@@ -201,12 +203,7 @@ def configure_provider_virtualbox(node, host)
       end
     end
 
-      # TODO factorize
-      if host.key? 'provider_options_inline' then
-      host['provider_options_inline'].each do |line|
-        eval("provider."+line)
-      end
-    end
+    configure_provider_options_inline(host, provider)
   end
 end
 
@@ -249,12 +246,7 @@ def configure_provider_libvirt(node, host)
         end
       end
 
-      # TODO factorize
-      if host.key? 'provider_options_inline' then
-        host['provider_options_inline'].each do |line|
-          eval("provider."+line)
-        end
-      end
+      configure_provider_options_inline(host, provider)
     end
   end
 end
@@ -272,7 +264,12 @@ def configure_provider_docker(node, host)
     if host.key? 'memory' then
       if host['docker_options']['create_args'].is_a?(Hash) then
         if host['docker_options']['create_args'].key? '--memory' then
-          warn("Warning: 'memory' parameter " + host['memory'].to_s + " overriden by create_args --memory=" + host['docker_options']['create_args']['--memory'].to_s)
+          warn(
+            "Warning: 'memory' parameter " +
+            host['memory'].to_s +
+            " overriden by create_args --memory=" +
+            host['docker_options']['create_args']['--memory'].to_s
+          )
         else
           host['docker_options']['create_args']['--memory'] = host['memory']
         end
@@ -282,7 +279,12 @@ def configure_provider_docker(node, host)
     if host.key? 'cpus' then
       if host['docker_options']['create_args'].is_a?(Hash) then
         if host['docker_options']['create_args'].key? '--cpuset-cpus' then
-          warn("Warning: 'cpus' parameter " + host['cpus'].to_s + " overriden by create_args --cpuset-cpus=" + host['docker_options']['create_args']['--cpuset-cpus'].to_s)
+          warn(
+            "Warning: 'cpus' parameter " +
+            host['cpus'].to_s +
+            " overriden by create_args --cpuset-cpus=" +
+            host['docker_options']['create_args']['--cpuset-cpus'].to_s
+          )
         else
           host['docker_options']['create_args']['--cpuset-cpus'] = host['cpus']
         end
@@ -312,20 +314,31 @@ def configure_provider_docker(node, host)
         end
       end
 
-      # TODO factorize
-      if host.key? 'provider_options_inline' then
-        host['provider_options_inline'].each do |line|
-          eval("provider."+line)
-        end
-      end
+      configure_provider_options_inline(host, provider)
     end
 
+  end
+end
+
+def configure_provider_custom(node, host, provider)
+  p provider
+  node.vm.provider provider do |provider|
+    configure_provider_options_inline(host, provider)
+  end
+end
+
+def configure_provider_options_inline(host, provider)
+  if host.key? 'provider_options_inline' then
+    host['provider_options_inline'].each do |line|
+      eval("provider."+line)
+    end
   end
 end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   hosts.each do |host|
     config.vm.define host['name'] do |node|
+      node.vm.box = host['box'] if host.key? 'box'
       node.vm.box_url = host['box_url'] if host.key? 'box_url'
       node.vm.hostname = host['name']
 
@@ -340,13 +353,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       virtualbox_guest_additions(node, host)
 
-      # if not host.key? 'provider' || host['provider'] == 'virtualbox' then
-      if host['provider'] == 'virtualbox' then
+      host_provider = requested_provider
+      host_provider = host['provider'].to_sym if host.key? 'provider'
+
+      if host_provider == :virtualbox then
         configure_provider_virtualbox(node, host)
-      elsif host['provider'] == 'libvirt' then
+      elsif host_provider == :libvirt then
         configure_provider_libvirt(node, host)
-      elsif host['provider'] == 'docker' then
+      elsif host_provider == :docker then
         configure_provider_docker(node, host)
+      elsif host_provider then:
+        configure_provider_custom(node, host, host_provider)
       end
 
       # Shell provisioning
@@ -360,6 +377,4 @@ end
 
 # -*- mode: ruby -*-
 # vi: ft=ruby :
-
-
 """

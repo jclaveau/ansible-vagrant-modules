@@ -16,7 +16,7 @@
   tags:
     - providers
     - providers::virtualbox
-  when: virtualbox_enabled | default(false)
+    - virtualbox
   block:
   - name: Add one vm using virtualbox
     jclaveau.vagrant.config:

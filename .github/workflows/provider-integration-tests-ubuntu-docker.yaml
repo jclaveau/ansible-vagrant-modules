@@ -1,14 +1,11 @@
-name: Integration Tests Ubuntu/Docker
+name: Ubuntu / Docker
 on: [ push ]
 jobs:
-  integration-tests-on-ubuntu-with-docker:
+  provider-integration-tests-docker-on-ubuntu:
     runs-on: ubuntu-latest
     env:
       PY_COLORS: '1'
       ANSIBLE_FORCE_COLOR: '1'
-      VIRTUALBOX_ENABLED: false
-      LIBVIRT_ENABLED: false
-      DOCKER_ENABLED: true
     defaults:
       run:
         working-directory: ansible_collections/jclaveau/vagrant
@@ -72,16 +69,16 @@ jobs:
       #       ${{ runner.os }}-vagrant-
 
       - name: Run the integration tests
-        run: ansible-test integration --python 3.8 config --tags docker --coverage --color
+        run: ansible-test integration --no-temp-workdir --python 3.8 config --tags docker --coverage --color
 
       - name: Prepare coverage for Codecov.io
         run: ansible-test coverage xml --color
 
-      # - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
-      #   with:
-      #     # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-      #     directory: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
-      #     flags: integrationtests # optional
-      #     name: codecov-vagrant-collection-integration-tests # optional
-      #     fail_ci_if_error: true # optional (default = false)
-      #     verbose: true # optional (default = false)
+      - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
+        with:
+          # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          directory: /home/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
+          flags: integrationtests, docker
+          name: integration-tests-ubuntu-docker
+          fail_ci_if_error: true
+          # verbose: true

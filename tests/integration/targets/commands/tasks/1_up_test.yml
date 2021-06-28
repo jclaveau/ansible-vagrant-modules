@@ -50,7 +50,7 @@
     jclaveau.vagrant.up:
     args:
       name: srv002
-      provider: docker
+      provider: hyperv
     register: up_srv002_result
     ignore_errors: true
 
@@ -61,48 +61,21 @@
     - never
     - debug
 
-  - name: check that Docker is installed
-    ansible.builtin.shell: docker --version
-    ignore_errors: true
-    register: docker_version_result
-
-  - name: Vagrant up with docker as provider should fail as the box doesn't exist for docker
+  - name: Vagrant up with hyperv as provider should fail
     assert:
       that:
         - up_srv002_result is failed
         - up_srv002_result is not changed
         - >
-          "Bringing machine 'srv002' up with 'docker' provider..." in up_srv002_result.stdout_lines
+          "The provider 'hyperv' that was requested to back the machine" in up_srv002_result.stderr_lines
         - >
-          "==> srv002: Box 'debian/buster64' could not be found. Attempting to find and install..." in up_srv002_result.stdout_lines
-
+          "'srv002' is reporting that it isn't usable on this system. The" in up_srv002_result.stderr_lines
         - >
-          "The box you're attempting to add doesn't support the provider" in up_srv002_result.stderr_lines
+          "reason is shown below:" in up_srv002_result.stderr_lines
         - >
-          "you requested. Please find an alternate box or use an alternate" in up_srv002_result.stderr_lines
+          "The Hyper-V provider only works on Windows. Please try to" in up_srv002_result.stderr_lines
         - >
-          "provider. Double-check your requested provider to verify you didn't" in up_srv002_result.stderr_lines
-        - >
-          "simply misspell it." in up_srv002_result.stderr_lines
-        - >
-          "Name: debian/buster64" in up_srv002_result.stderr_lines
-        - >
-          "Address: https://vagrantcloud.com/debian/buster64" in up_srv002_result.stderr_lines
-        - >
-          "Requested provider: [:docker]" in up_srv002_result.stderr_lines
-    when: docker_version_result is success
-
-
-  - name: Vagrant up with docker as provider should fail as the box doesn't exist for docker
-    assert:
-      that:
-        - up_srv002_result is failed
-        - up_srv002_result is not changed
-        - >
-          "The executable 'docker' Vagrant is trying to run was not" in up_srv002_result.stderr_lines
-        - >
-          "found in the PATH variable. This is an error. Please verify" in up_srv002_result.stderr_lines
-    when: docker_version_result is failed
+          "use another provider." in up_srv002_result.stderr_lines
 
   # Case 2: up 2 machines
   - name: destroy srv002 and srv001

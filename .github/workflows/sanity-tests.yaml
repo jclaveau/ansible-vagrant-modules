@@ -44,4 +44,4 @@ jobs:
         run: pip install yamllint pyyaml
 
       - name: Run the sanity tests
-        run: ansible-test sanity --python 3.8
+        run: ansible-test sanity --python 3.8 --exclude .githooks/

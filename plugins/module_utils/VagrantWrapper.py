@@ -76,7 +76,6 @@ class VagrantWrapper(object):
     def raw_statuses(self, name=None, must_be_present=True):
         out = {}
         try:
-            # result = self.vg.status(name)[0].state
             results = self.vg.status(name)
             for result in results:
                 # print(result)
@@ -101,6 +100,16 @@ class VagrantWrapper(object):
 
             if must_be_present:
                 self.fail_module(stderr.decode('utf-8'))
+        except IndexError as e:
+            # error in python-vagrant when no machine available
+            out[name] = {
+                'name': 'name',
+                'state': 'absent',
+                'provider': None,
+            }
+            # if must_be_present:
+            #     self.fail_module("MachineNotFound")
+
         return out
 
     def status(self, name=None):

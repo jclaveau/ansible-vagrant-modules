@@ -17,7 +17,6 @@
     - providers
     - libvirt
     - providers::libvirt
-  # when: libvirt_enabled | default(true)
   block:
   - name: Add one vm using Libvirt
     jclaveau.vagrant.config:
@@ -70,45 +69,45 @@
         # - vagrant_config_add_results is changed
         # - vagrant_config_add_results.vms.needs == ['up']
 
-  # - name: Register expected vagrant-hosts.yml content
-  #   no_log: true
-  #   ansible.builtin.set_fact:
-  #     expected_vagrant_hosts_content:
-  #     - box: debian/jessie64
-  #       cpus: 2
-  #       libvirt_options:
-  #         driver: 'qemu' # kvm is unavailable on MAcOS
-  #         # emulator_path: "{{ (qemu_path) | ternary(qemu_path, '/usr/bin/qemu-system-x86_64') }}"
-  #         features:
-  #         - acpi
-  #         - apic
-  #         - pae
-  #         # machine_type: 'none,accel=hvm'
-  #         nested: true
-  #         qemu_use_session: "{{ (qemu_use_session) | ternary(qemu_use_session, false) }}"
-  #         # socket: "{{ (libvirt_socket) | ternary(libvirt_socket, '/var/run/libvirt/libvirt-sock') }}"
-  #         storage:
-  #         - - :file
-  #           - :path: libvirt_tests_shared_disk.img
-  #             :size: 10M
-  #         - - :file
-  #           - :path: libvirt_tests_shared_disk_2.img
-  #             :size: 15M
-  #       # management_network_address: 10.11.12.0/24
-  #       # management_network_mac: 52:54:00:fb:95:91
-  #       # management_network_name: my_network
-  #       memory: 2048
-  #       name: srv001
-  #       provider: libvirt
-  #       provider_options_inline:
-  #       - default_prefix = "test"
+  - name: Register expected vagrant-hosts.yml content
+    no_log: true
+    ansible.builtin.set_fact:
+      expected_vagrant_hosts_content:
+      - box: debian/jessie64
+        cpus: 2
+        libvirt_options:
+          driver: 'qemu' # kvm is unavailable on MAcOS
+          # emulator_path: "{{ (qemu_path) | ternary(qemu_path, '/usr/bin/qemu-system-x86_64') }}"
+          features:
+          - acpi
+          - apic
+          - pae
+          # machine_type: 'none,accel=hvm'
+          nested: true
+          # qemu_use_session: "{{ (qemu_use_session) | ternary(qemu_use_session, false) }}"
+          # socket: "{{ (libvirt_socket) | ternary(libvirt_socket, '/var/run/libvirt/libvirt-sock') }}"
+          storage:
+          - - :file
+            - :path: libvirt_tests_shared_disk.img
+              :size: 10M
+          - - :file
+            - :path: libvirt_tests_shared_disk_2.img
+              :size: 15M
+        # management_network_address: 10.11.12.0/24
+        # management_network_mac: 52:54:00:fb:95:91
+        # management_network_name: my_network
+        memory: 2048
+        name: srv001
+        provider: libvirt
+        provider_options_inline:
+        - default_prefix = "test"
 
-  # - name: vagrant-hosts.yml should contain
-  #   assert:
-  #     that:
-  #       - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
-  #   with_file:
-  #     - ./vagrant-hosts.yml
+  - name: vagrant-hosts.yml should contain
+    assert:
+      that:
+        - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+    with_file:
+      - ./vagrant-hosts.yml
 
   - name: Destroy existing vm
     jclaveau.vagrant.destroy:
