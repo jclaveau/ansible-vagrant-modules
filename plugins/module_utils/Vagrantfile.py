@@ -5,6 +5,8 @@
 
 VAGRANTFILE_CONTENT = """
 
+
+
 # One Vagrantfile to rule them all!
 #
 # This is a generic Vagrantfile that can be used without modification in
@@ -37,12 +39,11 @@ VAGRANTFILE_CONTENT = """
 
 require 'rbconfig'
 require 'yaml'
+# require 'getoptlong'
+require 'optparse'
 
 # set default LC_ALL for all BOXES
 ENV["LC_ALL"] = "en_US.UTF-8"
-
-# Set your default base box here
-DEFAULT_BASE_BOX = 'bento/centos-7.6'
 
 # When set to `true`, Ansible will be forced to be run locally on the VM
 # instead of from the host machine (provided Ansible is installed).
@@ -51,9 +52,7 @@ FORCE_LOCAL_RUN = false
 #
 # No changes needed below this point
 #
-
 VAGRANTFILE_API_VERSION = '2'
-PROJECT_NAME = '/' + File.basename(Dir.getwd)
 
 # set custom vagrant-hosts file
 vagrant_hosts = ENV['VAGRANT_HOSTS'] ? ENV['VAGRANT_HOSTS'] : 'vagrant-hosts.yml'
@@ -64,6 +63,11 @@ if File.file?(vagrant_groups)
   groups = YAML.load_file(File.join(Dir.pwd, vagrant_groups))
 else
   groups = []
+end
+
+requested_provider = (ENV['VAGRANT_DEFAULT_PROVIDER'] || :virtualbox).to_sym
+OptionParser.new do |opt|
+  opt.on('--provider PROVIDER') { |o| requested_provider = o }
 end
 
 # {{{ Helper functions
@@ -101,7 +105,7 @@ def network_options(host)
   end
 
   options[:mac] = host['mac'].gsub(/[-:]/, '') if host.key?('mac')
-  options[:auto_config] = host['auto_config'] if host.key?('auto_config')
+  options[:auto_config] = host.key?('auto_config') ? host['auto_config'] : true
   options[:virtualbox__intnet] = true if host.key?('intnet') && host['intnet']
   options
 end
@@ -166,16 +170,6 @@ def provision_shell(node, host)
       eval("shell."+key+" = host['shell'][key]")
     end
   end
-
-  # Could be useful https://stackoverflow.com/questions/15461898/passing-variable-to-a-shell-script-provisioner-in-vagrant
-  # config.vm.provision "shell" do |s|
-  #   s.binary = true # Replace Windows line endings with Unix line endings.
-  #   s.inline = %Q(/usr/bin/env    \
-  #     TRACE=#{ENV['TRACE']}       \
-  #     VERBOSE=#{ENV['VERBOSE']}   \
-  #     FORCE=#{ENV['FORCE']}       \
-  #     bash my_script.sh)
-  # end
 end
 
 def virtualbox_guest_additions(node, host)
@@ -193,12 +187,163 @@ def virtualbox_guest_additions(node, host)
   end
 end
 
+def configure_provider_virtualbox(node, host)
+  # https://docs.oracle.com/en/virtualization/virtualbox/6.0/user/vboxmanage-modifyvm.html
+  node.vm.provider :virtualbox do |provider|
+    provider.memory = host['memory'] if host.key? 'memory'
+    provider.cpus = host['cpus'] if host.key? 'cpus'
+
+    if host.key? 'virtualbox_options' then
+      host['virtualbox_options'].each do |key, value|
+        if key.match(/^--/) then
+          provider.customize ['modifyvm', :id, key, value]
+        else
+          eval("provider."+key+" = value")
+        end
+      end
+    end
+
+    configure_provider_options_inline(host, provider)
+  end
+end
+
+def configure_provider_libvirt(node, host)
+  # https://github.com/vagrant-libvirt/vagrant-libvirt#provider-options
+
+  # TODO check that it is required
+  # Alternative solution https://stackoverflow.com/a/57708188/2714285 ?
+  # if Vagrant.has_plugin?("vagrant-libvirt") then
+  #   puts "The vagrant-libvirt plugin is required. Please install it with:"
+  #   puts "$ vagrant plugin install vagrant-libvirt"
+  #   return
+  # end
+
+  node.vm.provider :libvirt do |provider|
+    provider.memory = host['memory'] if host.key? 'memory' # default 512
+    provider.cpus = host['cpus'] if host.key? 'cpus' # default 1
+
+    if host.key? 'libvirt_options' then
+      host['libvirt_options'].each do |key, value|
+
+        is_method_call = false
+        if value.is_a?(Array) then
+          value.each do |array_item|
+            if array_item.is_a?(Array) and (array_item.length() == 1 or array_item.length() == 2) and
+              array_item[0].is_a?(Symbol) and
+              (array_item.length() == 1 or (array_item[1].is_a?(Array) or array_item[1].is_a?(Hash))) then
+              is_method_call = true
+            end
+          end
+        end
+
+        if is_method_call then
+          value.each do |array_item|
+            provider.send(key, *array_item)
+          end
+        else
+          # use send? https://stackoverflow.com/questions/3167966/ruby-using-object-send-for-assigning-variables
+          eval("provider."+key+" = value")
+        end
+      end
+
+      configure_provider_options_inline(host, provider)
+    end
+  end
+end
+
+def configure_provider_docker(node, host)
+  # https://docs.docker.com/config/containers/resource_constraints/
+  # https://stackoverflow.com/questions/47919339/vagrant-with-docker-provider-specifying-cpu-and-memory
+  # https://www.vagrantup.com/docs/providers/docker/configuration
+
+  # provider.image = "foo/bar" # dup of box? https://www.vagrantup.com/docs/providers/docker/basics
+  # https://www.vagrantup.com/docs/providers/docker/boxes
+
+  node.vm.provider :docker do |provider|
+    # !!! This will loop several times
+    if host.key? 'memory' then
+      if host['docker_options']['create_args'].is_a?(Hash) then
+        if host['docker_options']['create_args'].key? '--memory' then
+          warn(
+            "Warning: 'memory' parameter " +
+            host['memory'].to_s +
+            " overriden by create_args --memory=" +
+            host['docker_options']['create_args']['--memory'].to_s
+          )
+        else
+          host['docker_options']['create_args']['--memory'] = host['memory']
+        end
+      end
+    end
+
+    if host.key? 'cpus' then
+      if host['docker_options']['create_args'].is_a?(Hash) then
+        if host['docker_options']['create_args'].key? '--cpuset-cpus' then
+          warn(
+            "Warning: 'cpus' parameter " +
+            host['cpus'].to_s +
+            " overriden by create_args --cpuset-cpus=" +
+            host['docker_options']['create_args']['--cpuset-cpus'].to_s
+          )
+        else
+          host['docker_options']['create_args']['--cpuset-cpus'] = host['cpus']
+        end
+      end
+    end
+
+    if host.key? 'docker_options' then
+      # enabling ssh by default for provisionning
+      host['docker_options']['has_ssh'] = true if not host['docker_options'].key? 'has_ssh'
+      host['docker_options']['remains_running'] = true if not host['docker_options'].key? 'remains_running'
+
+      host['docker_options'].each do |key, value|
+
+        if key == 'create_args' and value.is_a?(Hash) then
+          host['docker_options']['create_args'] = host['docker_options']['create_args'].map do |k, v|
+            k.to_s + '=' + v.to_s
+          end
+        end
+
+        if key == 'link' and value.is_a?(Array) and len(value) then
+          value.each do |array_item|
+            provider.send(key, *array_item)
+          end
+        else
+          # use send? https://stackoverflow.com/questions/3167966/ruby-using-object-send-for-assigning-variables
+          eval("provider."+key+" = value")
+        end
+      end
+
+      configure_provider_options_inline(host, provider)
+    end
+
+  end
+end
+
+def configure_provider_custom(node, host, provider)
+  p provider
+  node.vm.provider provider do |provider|
+    configure_provider_options_inline(host, provider)
+  end
+end
+
+def configure_provider_options_inline(host, provider)
+  if host.key? 'provider_options_inline' then
+    host['provider_options_inline'].each do |line|
+      eval("provider."+line)
+    end
+  end
+end
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   hosts.each do |host|
     config.vm.define host['name'] do |node|
-      node.vm.box = host['box'] ||= DEFAULT_BASE_BOX
+      node.vm.box = host['box'] if host.key? 'box'
       node.vm.box_url = host['box_url'] if host.key? 'box_url'
       node.vm.hostname = host['name']
+
+      # disable box update checking by default
+      node.vm.box_check_update = (host.key? 'box_check_update') ? host['box_check_update'] : false
 
       node.vm.network :private_network, **network_options(host)
 
@@ -208,14 +353,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       virtualbox_guest_additions(node, host)
 
-      node.vm.provider :virtualbox do |vb|
-        vb.memory = host['memory'] if host.key? 'memory'
-        vb.cpus = host['cpus'] if host.key? 'cpus'
+      host_provider = requested_provider
+      host_provider = host['provider'].to_sym if host.key? 'provider'
 
-        # Add VM to a VirtualBox group
-        # WARNING: if the name of the current directory is the same as the
-        # host name, this will fail.
-        vb.customize ['modifyvm', :id, '--groups', PROJECT_NAME]
+      if host_provider == :virtualbox then
+        configure_provider_virtualbox(node, host)
+      elsif host_provider == :libvirt then
+        configure_provider_libvirt(node, host)
+      elsif host_provider == :docker then
+        configure_provider_docker(node, host)
+      elsif host_provider then:
+        configure_provider_custom(node, host, host_provider)
       end
 
       # Shell provisioning
@@ -229,5 +377,4 @@ end
 
 # -*- mode: ruby -*-
 # vi: ft=ruby :
-
 """

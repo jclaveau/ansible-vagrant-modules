@@ -12,4 +12,5 @@
 /tests/integration/targets/add_host/in_playbook/Vagrantfile
 /tests/integration/targets/add_host/in_playbook/vagrant-hosts.yml
 /tests/integration/targets/add_host/in_playbook/vagrant-groups.yml
+/tests/integration/integration_config.yml
 __pycache__

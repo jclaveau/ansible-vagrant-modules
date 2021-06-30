@@ -1,0 +1,114 @@
+- name: Start with no vagrant-hosts.yml
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: absent
+  tags:
+    - always
+
+- name: create empty file to avoid failure due to with_file # https://github.com/ansible/ansible/issues/16917
+  ansible.builtin.file:
+    path: ./vagrant-hosts.yml
+    state: touch
+  tags:
+    - always
+
+- name: virtualbox config tests
+  tags:
+    - providers
+    - providers::virtualbox
+    - virtualbox
+  block:
+  - name: Add one vm using virtualbox
+    jclaveau.vagrant.config:
+    args:
+      state: "present"
+      name: "srv001"
+      config:
+        box: boxomatic/debian-11
+        memory: 2048
+        cpus: 2
+        provider: "virtualbox"
+        virtualbox_options:
+          name: "my_vm"
+          linked_clone: true
+          # gui: true
+          check_guest_additions: false
+          --groups: "/my-vb-group"
+        provider_options_inline:
+         - "customize ['modifyvm', :id, '--cpuexecutioncap', '50']"
+    register: vagrant_config_add_results
+
+  - name: dbg config add results
+    ansible.builtin.debug:
+      var: vagrant_config_add_results
+    tags:
+    - never
+    - debug
+
+  - name: Vagrant config update should succeed
+    assert:
+      that:
+        - vagrant_config_add_results is success
+        - vagrant_config_add_results is changed
+        - vagrant_config_add_results.vms.needs == ['up']
+
+  - name: Register expected vagrant-hosts.yml content
+    no_log: true
+    ansible.builtin.set_fact:
+      expected_vagrant_hosts_content:
+        - box: boxomatic/debian-11
+          memory: 2048
+          name: "srv001"
+          cpus: 2
+          provider: "virtualbox"
+          virtualbox_options:
+            name: "my_vm"
+            linked_clone: true
+            # gui: true
+            check_guest_additions: false
+            --groups: "/my-vb-group"
+          provider_options_inline:
+          - "customize ['modifyvm', :id, '--cpuexecutioncap', '50']"
+
+  - name: vagrant-hosts.yml should contain
+    assert:
+      that:
+        - "{{ item |from_yaml }} ==  {{ expected_vagrant_hosts_content }} "
+    with_file:
+      - ./vagrant-hosts.yml
+
+  - name: srv001 must be not_created
+    jclaveau.vagrant.destroy:
+    args:
+      name: "srv001"
+
+  - name: Boot the vm
+    jclaveau.vagrant.up:
+    args:
+      name: "srv001"
+
+  - name: Retrieve vm info
+    shell: "VBoxManage showvminfo my_vm --machinereadable"
+    register: vm_info
+
+  - name: dbg vm info
+    ansible.builtin.debug:
+      var: vm_info
+    tags:
+    - never
+    - debug
+
+  - name: VBoxManage showvminfo my_vm should succeed
+    assert:
+      that:
+        - vm_info is success
+        - '"name=\"my_vm\"" in vm_info.stdout_lines'
+        - '"groups=\"/my-vb-group\"" in vm_info.stdout_lines'
+        - '"cpus=2" in vm_info.stdout_lines'
+        - '"memory=2048" in vm_info.stdout_lines'
+        - '"cpuexecutioncap=50" in vm_info.stdout_lines'
+
+  - name: Destroy the vm
+    jclaveau.vagrant.destroy:
+    args:
+      name: "srv001"

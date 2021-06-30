@@ -32,6 +32,9 @@
 #   loop: '{{ vagrant_ssh_config_result.ssh_configs }}'
 #   delegate_to: localhost
 
+
+# IF THE FOLLOWING TESTS WORK, THE TEST IN PLAYBOOK COULD BE REPLACED BY REGULAR INTEGRATION TESTS
+
 - name: Saving hosts list
   ansible.builtin.set_fact:
     hosts_before: "{{ ansible_play_batch }}"
@@ -82,4 +85,3 @@
 
 # test with connection = local
 # update readme
-

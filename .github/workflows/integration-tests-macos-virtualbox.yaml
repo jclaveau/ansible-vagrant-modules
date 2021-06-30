@@ -1,0 +1,67 @@
+name: Integration Tests
+on: [ push ]
+jobs:
+  # https://stackoverflow.com/questions/66261101/using-vagrant-on-github-actions-ideally-incl-virtualbox
+  integration-tests-virtualbox-on-macos:
+    runs-on: macos-10.15
+    env:
+      PY_COLORS: '1'
+      ANSIBLE_FORCE_COLOR: '1'
+    defaults:
+      run:
+        working-directory: ansible_collections/jclaveau/vagrant
+
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          path: ansible_collections/jclaveau/vagrant
+
+      - name: Install truncate
+        run: brew install truncate
+
+      - name: Pass environment variables to the tests
+        run: ./tests/integration/integration_config.sh
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install gnu-sed
+        run: brew install gnu-sed
+
+      - name: Install wheel
+        run: pip install wheel
+
+      - name: Install dependencies
+        run: pip install -r ./requirements.txt
+
+      - name: Install coverage dependency
+        run: pip install --user coverage==4.5.4
+
+      # - name: Cache Vagrant boxes
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.vagrant.d/boxes
+      #     key: ${{ runner.os }}-vagrant-${{ hashFiles('Vagrantfile') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-vagrant-
+
+      # - name: Run the integration test in a playbook for add_host
+      #   run: ./tests/integration/targets/add_host/in_playbook/tests.sh
+
+      - name: Run the integration tests
+        run: ansible-test integration --python 3.8 --no-temp-workdir --color --coverage --skip-tags "providers"
+
+      - name: Prepare coverage for Codecov.io
+        run: ansible-test coverage xml --color
+
+      - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
+        with:
+          # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          directory: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
+          flags: integrationtests, virtualbox
+          name: integration-tests-macos-virtualbox # optional
+          fail_ci_if_error: true
+          # verbose: true

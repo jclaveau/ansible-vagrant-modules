@@ -2,9 +2,15 @@
 This file is auto-generate by a github hook please modify readme.md if you don't want to loose your work
 -->
 # ALPHA: Ansible Collection - [jclaveau.vagrant](git@github.com:jclaveau/ansible-vagrant-modules.git)
-[![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml/badge.svg?branch=main)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml?query=branch%3Amain)
-[![Integration Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests.yaml/badge.svg?branch=main)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests.yaml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/main/graph/badge.svg?token=qlZsPUMdwP)](https://app.codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/main)
+[![Sanity Tests](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/sanity-tests.yaml?query=branch%3Aconfigurable_providers)
+[![Coverage](https://codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/configurable_providers/graph/badge.svg?token=qlZsPUMdwP)](https://app.codecov.io/gh/jclaveau/ansible-vagrant-modules/branch/configurable_providers)
+[![Integration Tests (MacOS/VirtualBox)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-macos-virtualbox.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/integration-tests-macos-virtualbox.yaml?query=branch%3Aconfigurable_providers)
+
+#### Providers Integration Tests
+[![Ubuntu/Libvirt](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/provider-integration-tests-ubuntu-libvirt.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/provider-integration-tests-ubuntu-libvirt.yaml?query=branch%3Aconfigurable_providers)
+[![Ubuntu/Docker](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/provider-integration-tests-ubuntu-docker.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/provider-integration-tests-ubuntu-docker.yaml?query=branch%3Aconfigurable_providers)
+[![MacOS/Virtualbox](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/provider-integration-tests-macos-virtualbox.yaml/badge.svg?branch=configurable_providers)](https://github.com/jclaveau/ansible-vagrant-modules/actions/workflows/provider-integration-tests-macos-virtualbox.yaml?query=branch%3Aconfigurable_providers)
+
 
 
 This collection of modules provide access to [Vagrant](http://vagrantup.com/) commands and configuration of the Vagrantfile from [ansible](http://ansible.cc) playbooks and roles.
@@ -24,8 +30,8 @@ For all these cases, I want the required provisionning playbooks/roles to handle
 
  - [molecule](https://molecule.readthedocs.io/en/latest/) and [ansible-test](https://docs.ansible.com/ansible/latest/dev_guide/testing.html) do not allow dynamic modifications of the platforms or hosts you play your roles / playbooks on, so they do not fit my needs.
  - Running vagrant from the shell module generated permission issues on Ubuntu
- - There is a well written role [amtega/ansible_role_vagrant_provisioner](https://github.com/amtega/ansible_role_vagrant_provisioner) as well but it doesn't
-   support Ubuntu, probably because it calls `vagrant` from the shell too
+ - There is a well written role [amtega/ansible_role_vagrant_provisioner](https://github.com/amtega/ansible_role_vagrant_provisioner) as well but it doesn't support Ubuntu, probably because it calls `vagrant` from the shell too
+ - The most trendy solution today seems to be [Terraform](https://github.com/hashicorp/terraform) used with [Terratest](https://github.com/gruntwork-io/terratest) but my goal here is to use `ansible-test` assertions instead of tests written in `golang`. Also the `Virtualbox` provider for `Terraform` doesn't work properly for now.
 
 ## Dependencies & Installation
 Before this work is ready to be shared on [ansible-galaxy](https://galaxy.ansible.com/), you can include it in yor playbooks this way
@@ -83,10 +89,14 @@ This could be a test case for a GlusterFS role + playbook
   - name: Check the status of the gluster peers
     shell: "gluster peer status"
     register: peers_status
+
   - name: show peers_status
     dbg:
       var: peers_status
-  # TODO assert
+
+  - name: Assert that all peers are available
+      assert:
+        that: '...'
 
   # destroy
   - name: destroy one node
@@ -98,12 +108,16 @@ This could be a test case for a GlusterFS role + playbook
   - name: Check the status of the gluster peers
     shell: "gluster peer status"
     register: peers_status
+
   - name: show peers_status
     dbg:
       var: peers_status
-  # TODO assert
 
-  # recreate it
+  - name: Assert that one peer is missing
+        assert:
+          that: '...'
+
+  # recreate and reprovision it
   - name: recreate and reprovision it
     jclaveau.vagrant.up:
     args:
@@ -113,11 +127,97 @@ This could be a test case for a GlusterFS role + playbook
   - name: Check the status of the gluster peers
     shell: "gluster peer status"
     register: peers_status
+
   - name: show peers_status
     dbg:
       var: peers_status
-  # TODO assert
 
+  - name: Assert that all peers are available again
+      assert:
+        that: '...'
+```
+
+## Configuration examples
+
+```yaml
+  # TODO chercher exemple de Playbook de provisionning lancé depuis Vagrant
+- name: Add a vm to the Vagrantfile
+  jclaveau.vagrant.config:
+  args:
+    state: "present"
+    name: "srv001"
+    config:
+      box: boxomatic/debian-11
+      box_path: '/path/to/a/box/file'
+
+      # Those options will trigger the required configuration of VirtualBox, Libvirt or Docker
+      cpus: 2
+      memory: 2048
+
+      # By default, this Vagrantfile with configure a private_network working with dhcp
+      ip: '192.168.10.1'
+      mac: '...'
+      netmask: '255.255.255.0'
+      auto_config: false
+      intnet: false # equivalent of :virtualbox__intnet
+
+      # forwarded_ports can be configured verry easily
+      forwarded_ports:
+        - host: "8080"
+          guest: 80
+        - host: "8043"
+          guest: 443
+        - guest: 22
+          host: 2270
+          id: ssh
+
+      # Provisionning
+      ansible:
+        playbook: "your_provisionning_playbook.yml"
+      shell:
+        inline: 'echo "provisionning done"'
+
+      # Example for Libvirt provider
+      provider: libvirt
+      libvirt_options:
+        nested: true
+        features:
+        - acpi
+        - apic
+        storage:
+        - - :file
+          - :path: libvirt_tests_shared_disk.img
+            :size: 10M
+        - - :file
+          - :path: libvirt_tests_shared_disk_2.img
+            :size: 15M
+
+      # Example for Docker provider
+      provider: docker
+      docker_options:
+        create_args:
+          --cpuset-cpus: 1
+        # image: tknerr/baseimage-ubuntu:18.04
+        ports:
+        - 9999:99
+
+      # Example for Virtualbox provider
+      provider: virtualbox
+      virtualbox_options:
+        name: "my_vm"
+        linked_clone: true
+        # gui: true
+        check_guest_additions: false
+        # All entries having '--' as prefix will trigger a call like provider.customize ['modifyvm', :id, key, value]
+        --groups: "/my-vb-group"
+
+      # Inline configuration for providers without dedicated support
+      # If you do not find an ption you need, you can pass inline Ruby code which will be evaluated against the `provider`
+      # object in the Vagrantfile
+      provider: my_custom_provider
+      provider_options_inline:
+      - my_proprty = "my_value"
+      - method_call ['param_1', 'param_2']
 
 ```
 
@@ -135,8 +235,9 @@ Presently, two Vagrant commands have `parellel` parameter available: `up` and `d
 concurrency handling to the provider (`Libvirt` handles it while `VirtualBox` doesn't for example).
 Sadly these parameters are not implemented in `python-vagrant` which doesn't seem maintained for a while.
 As a result, implementing the binding to this represents quite a lot of work and I consider it out of the scope of this first version.
-In consequences, I chose to allow only one vm by `Vagrant` command and let the end user implement parallelism with `Ansible`'s `async` featuer like
-shown below.
+In consequences, I chose to allow only one vm by `Vagrant` command and let the end user implement parallelism with `Ansible`'s `async` featuer like shown below.
+
+Also Amtega teem implemented a role handling this async use of vagrant: https://github.com/amtega/ansible_role_vagrant_provisioner
 
 You are please to implement it if you wish: [issue 39](https://github.com/jclaveau/ansible-vagrant-modules/issues/39)
 

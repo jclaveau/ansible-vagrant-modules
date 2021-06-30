@@ -1,0 +1,111 @@
+name: Ubuntu / Libvirt
+on: [ push ]
+jobs:
+  provider-integration-tests-libvirt-on-ubuntu:
+    runs-on: ubuntu-latest
+    env:
+      PY_COLORS: '1'
+      ANSIBLE_FORCE_COLOR: '1'
+      VIRTUALBOX_ENABLED: false
+      QEMU_PATH:
+      QEMU_USE_SESSION: true
+      LIBVIRT_IMAGES_PATH: '/home/runner/work/vagrant_images/'
+    defaults:
+      run:
+        working-directory: ansible_collections/jclaveau/vagrant
+
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          path: ansible_collections/jclaveau/vagrant
+
+      - name: pwd
+        run: pwd
+
+      - name: Pass environment variables to the tests
+        run: ./tests/integration/integration_config.sh
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Apt update
+        run: sudo apt-get update
+
+      - name: Install Vagrant
+        run: sudo apt-get install vagrant
+
+      - name: Install Vagrant mutate
+        run: sudo vagrant plugin install vagrant-mutate
+
+      - name: Vagrant plugin list
+        run: sudo vagrant plugin list
+
+      - name: Install Kvm / Qemu / Libvirt
+        run: sudo apt-get install qemu qemu-kvm libvirt-daemon-system libvirt-clients libxslt-dev libxml2-dev libvirt-dev zlib1g-dev ruby-dev ruby-libvirt ebtables dnsmasq-base
+
+      - name: Start Libvirt
+        run: sudo systemctl enable libvirtd; sudo systemctl restart libvirtd
+
+      - name: ls
+        run: ls /home/runner/
+
+      - name: Libvirt status
+        run: sudo systemctl status libvirtd
+
+      - name: Setup default pool
+        run: sudo mkdir /home/runner/work/vagrant_images
+
+      - name: Setup default pool
+        run: sudo chmod 777 /home/runner/work/vagrant_images
+
+      - name: Setup default pool
+        run: sudo virsh pool-list
+
+      # all the steps below are run under sudo to avoid permission issue on libvirt-sock
+      # TODO add the right permissions to avoid ythis need
+      - name: virsh pool-define-as default
+        run: sudo virsh pool-define-as default dir --target /home/runner/work/vagrant_images
+
+      - name: virsh pool-autostart default
+        run: sudo virsh pool-autostart default
+
+      - name: virsh pool-start default
+        run: sudo virsh pool-start default
+
+      - name: Setup default pool
+        run: sudo virsh pool-list
+
+      - name: Install wheel
+        run: sudo pip install wheel
+
+      - name: Install dependencies
+        run: sudo pip install -r ./requirements.txt
+
+      - name: Install coverage dependency
+        run: sudo pip install --user coverage==4.5.4
+
+      # - name: Cache Vagrant boxes
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.vagrant.d/boxes
+      #     key: ${{ runner.os }}-vagrant-${{ hashFiles('Vagrantfile') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-vagrant-
+
+      - name: Run the integration tests
+        run: sudo ansible-test integration --python 3.8 --no-temp-workdir --color --coverage config --tags libvirt
+
+      - name: Prepare coverage for Codecov.io
+        run: sudo ansible-test coverage xml --color
+
+      - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
+        with:
+          # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          directory: /home/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
+          flags: integrationtests, libvirt
+          name: integration-tests-ubuntu-libvirt
+          fail_ci_if_error: true
+          # verbose: true # optional (default = false)

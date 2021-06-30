@@ -1,0 +1,171 @@
+name: Integration Tests MacOS/Libvirt
+on: [ push ]
+jobs:
+  # We cannot run this every time due to: https://github.com/actions/toolkit/issues/399
+  #
+  # `list_all_networks': Call to virConnectListAllNetworks failed:
+  # this function is not supported by the connection driver: virConnectListAllNetworks (Libvirt::RetrieveError)
+  # !!!!! FAILS DUE TO https://gitlab.com/libvirt/libvirt/-/issues/75
+  # !!!!! and https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1017
+  # !!!!! or https://github.com/dmacvicar/terraform-provider-libvirt/issues/640
+  integration-tests-on-macos:
+    runs-on: macos-10.15
+    env:
+      PY_COLORS: '1'
+      ANSIBLE_FORCE_COLOR: '1'
+      LIBVIRT_SOCKET: /Users/runner/.cache/libvirt/libvirt-sock
+      QEMU_PATH: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/integration/qemu-system-x86_64.py
+      QEMU_USE_SESSION: true
+    defaults:
+      run:
+        working-directory: ansible_collections/jclaveau/vagrant
+
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          path: ansible_collections/jclaveau/vagrant
+
+      - name: pwd
+        run: pwd
+
+      - name: Install libvirt
+        run: brew install qemu gcc libvirt
+
+      - name: Disable Qemu security
+        run: echo 'security_driver = "none"' >> /usr/local/etc/libvirt/qemu.conf
+
+      - name: Disable Qemu security
+        run: echo "dynamic_ownership = 0" >> /usr/local/etc/libvirt/qemu.conf
+
+      - name: Disable Qemu security
+        run: echo "remember_owner = 0" >> /usr/local/etc/libvirt/qemu.conf
+
+      - name: Disable Qemu security # https://serverfault.com/a/1002063/554795
+        run: echo 'user = "root"' >> /usr/local/etc/libvirt/qemu.conf
+
+      - name: Start Libvirt
+        run: brew services start libvirt
+
+      - name: virsh capabilities
+        run: virsh capabilities
+
+      - name: qemu-system-x86_64 -cpu help
+        run: qemu-system-x86_64 -cpu help
+
+      - name: qemu-system-arm -cpu help
+        run: qemu-system-arm -cpu help
+
+      - name: qemu-system-arm --machine sushi-m0plus-board -cpu help
+        run: qemu-system-arm --machine sushi-m0plus-board -cpu help
+
+      # - name: /dev/kvm
+      #   run: ls -l /dev/kvm
+
+      # - name: chmod /dev/kvm
+      #   run: chmod 666 /dev/kvm
+
+      # - name: launchctl list
+      #   run: find / -name libvirt-sock
+
+      # - name: launchctl list
+      #   run: launchctl list homebrew.mxcl.libvirt
+
+      # - name: launchctl dumpstate
+      #   run: launchctl dumpstate | grep libvirt
+
+      # - name: launchctl print
+      #   run: sudo launchctl print pid/1858
+
+      - name: Setup default pool
+        run: sudo ls /Users/runner/work/
+
+      - name: Setup default pool
+        run: sudo mkdir /Users/runner/work/vagrant_images
+
+      - name: Setup default pool
+        run: sudo chmod 777 /Users/runner/work/vagrant_images
+        # run: sudo mkdir /Users/runner/.cache/vagrant_images
+
+      - name: Setup default pool
+        run: virsh pool-list
+
+      - name: Setup default pool
+        run: virsh pool-define-as default dir --target /Users/runner/work/vagrant_images
+
+      - name: Setup default pool
+        run: virsh pool-list
+
+      - name: Setup default pool
+        run: virsh pool-autostart default
+
+      - name: Setup default pool
+        run: virsh pool-start default
+
+      - name: Install vagrant-mutate
+        run: vagrant plugin install vagrant-mutate
+
+      - name: Install vagrant-libvirt
+        run: brew install libiconv gcc libvirt
+
+      - name: Install vagrant-libvirt
+        run: vagrant plugin install vagrant-libvirt
+
+      - name: Install Vagrant
+        run: vagrant plugin list
+
+      - name: Install truncate
+        run: brew install truncate
+
+      - name: Pass environment variables to the tests
+        run: ./tests/integration/integration_config.sh
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      # https://stackoverflow.com/questions/59127258/how-can-i-use-pip-cache-in-github-actions
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-pip-packages
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('./requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install gnu-sed
+        run: brew install gnu-sed
+
+      - name: Install wheel
+        run: pip install wheel
+
+      - name: Install dependencies
+        run: pip install -r ./requirements.txt
+
+      - name: Install coverage dependency
+        run: pip install --user coverage==4.5.4
+
+      # - name: Cache Vagrant boxes
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.vagrant.d/boxes
+      #     key: ${{ runner.os }}-vagrant-${{ hashFiles('Vagrantfile') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-vagrant-
+
+      - name: Run the integration tests
+        run: ansible-test integration --python 3.8 config --coverage --color
+
+      - name: Prepare coverage for Codecov.io
+        run: ansible-test coverage xml --color
+
+      - uses: codecov/codecov-action@v1 # https://github.com/marketplace/actions/codecov
+        with:
+          # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          directory: /Users/runner/work/ansible-vagrant-modules/ansible-vagrant-modules/ansible_collections/jclaveau/vagrant/tests/output/reports/
+          flags: integrationtests # optional
+          name: codecov-vagrant-collection-integration-tests # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)

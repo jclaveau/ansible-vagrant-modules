@@ -1,5 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
+set -e
 
 COLLECTIONS_PATHS="$(pwd)/../../../../../"
 # echo $COLLECTIONS_PATHS
