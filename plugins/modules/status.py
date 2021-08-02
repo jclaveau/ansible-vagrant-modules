@@ -35,6 +35,10 @@ options:
       - the folder where vagrant files will be stored
     type: str
     default: .
+  log_dir:
+    description:
+      - the folder where vagrant log files will be stored
+    type: str
 requirements: ["vagrant"]
 '''
 
@@ -59,16 +63,20 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             vagrant_root=dict(default=DEFAULT_ROOT),
+            log_dir=dict(type='str'),
             name=dict(type='str'),
         )
     )
 
     vagrant_root = module.params.get('vagrant_root')
+    log_dir = module.params.get('log_dir')
     name = module.params.get('name')
 
     vgw = VagrantWrapper(
         module=module,
         root_path=vagrant_root,
+        log_dir=log_dir,
+        vm_name=name,
     )
 
     (changed, duration, statuses) = vgw.status(

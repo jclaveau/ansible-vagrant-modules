@@ -11,6 +11,7 @@ import tempfile
 import re
 import subprocess
 import time
+from datetime import datetime
 
 try:
     import vagrant
@@ -31,11 +32,23 @@ class VagrantWrapper(object):
 
         self.module = kwargs.setdefault('module', None)
         self.root_path = os.path.abspath(kwargs.setdefault('root_path', DEFAULT_ROOT))
+        self.log_dir = kwargs.setdefault('log_dir', None)
+        vm_name = kwargs.setdefault('vm_name', '*')
 
-        self.stdout_file = tempfile.NamedTemporaryFile()  # pylint: disable=consider-using-with
-        self.stdout_filename = self.stdout_file.name
-        self.stderr_file = tempfile.NamedTemporaryFile()  # pylint: disable=consider-using-with
-        self.stderr_filename = self.stderr_file.name
+        dt_gmt = datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f")
+        self.stdout_file = tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
+            prefix='ansible_' + dt_gmt + '_' + self.module._name + '_stdout_' + vm_name + '_',
+            suffix='.log',
+            delete=False,
+            dir=self.log_dir,
+        )
+
+        self.stderr_file = tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
+            prefix='ansible_' + dt_gmt + '_' + self.module._name + '_stderr_' + vm_name + '_',
+            suffix='.log',
+            delete=False,
+            dir=self.log_dir,
+        )
 
         if not os.path.exists(self.root_path):
             os.makedirs(self.root_path)
@@ -47,18 +60,25 @@ class VagrantWrapper(object):
 
         vgargs = []
         vgkwargs = dict(root=self.root_path)
-        vgkwargs['out_cm'] = vagrant.make_file_cm(self.stdout_filename, mode='a')
-        vgkwargs['err_cm'] = vagrant.make_file_cm(self.stderr_filename, mode='a')
+        vgkwargs['out_cm'] = vagrant.make_file_cm(self.stdout_file.name, mode='a')
+        vgkwargs['err_cm'] = vagrant.make_file_cm(self.stderr_file.name, mode='a')
 
         self.vg = vagrant.Vagrant(*vgargs, **vgkwargs)
 
+    def __del__(self):
+        if len(list(self.stdout())) == 0:
+            os.remove(self.stdout_file.name)
+
+        if len(list(self.stderr())) == 0:
+            os.remove(self.stderr_file.name)
+
     def stdout(self):
-        with open(self.stdout_filename, mode='r') as f:
+        with open(self.stdout_file.name, mode='r') as f:
             for line in f:
                 yield re.sub('\n$', '', line)
 
     def stderr(self):
-        with open(self.stderr_filename, mode='r') as f:
+        with open(self.stderr_file.name, mode='r') as f:
             for line in f:
                 yield re.sub('\n$', '', line)
 
@@ -90,7 +110,7 @@ class VagrantWrapper(object):
                 self.fail_module(e)
             stderr_parts = e.stdout.split(b',')
             stderr = stderr_parts[7] + b': ' + stderr_parts[8].replace(b'\\n', b' ')
-            with open(self.stderr_filename, 'a') as f:
+            with open(self.stderr_file.name, 'a') as f:
                 f.write(stderr.decode('utf-8'))
             out[name] = {
                 'name': 'name',
@@ -142,7 +162,7 @@ class VagrantWrapper(object):
         except subprocess.CalledProcessError as e:
             output = self.vg._parse_machine_readable_output(e.stdout.decode('utf-8'))
             stderr = output[0][3] + ": " + output[0][4]
-            with open(self.stderr_filename, 'a') as f:
+            with open(self.stderr_file.name, 'a') as f:
                 f.write(stderr)
             self.fail_module(e)
 
@@ -193,7 +213,7 @@ class VagrantWrapper(object):
         try:
             output = self.vg.ssh(vm_name=name, command=command)
             changed = True
-            with open(self.stdout_filename, 'a') as f:
+            with open(self.stdout_file.name, 'a') as f:
                 f.write(output)
         except subprocess.CalledProcessError as e:
             # print_err(e)
@@ -229,7 +249,7 @@ class VagrantWrapper(object):
 
                 stderr_parts = e.stdout.split(b',')
                 stderr = stderr_parts[7] + b': ' + stderr_parts[8].replace(b'\\n', b' ')
-                with open(self.stderr_filename, 'a') as f:
+                with open(self.stderr_file.name, 'a') as f:
                     f.write(stderr.decode('utf-8'))
                 self.fail_module(e)
 
